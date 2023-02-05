@@ -107,13 +107,6 @@ void noteOff(uint8_t noteNumber) {
 
 // ----------------------------------------------- MAIN SETUP ------------------------------------------
 void setup() {
-  
-  // Initialize I2C communication
-  Wire.begin(400000);
-  Adafruit_MCP4728 dac1;
-  Adafruit_MCP4728 dac2;
-  dac1.begin();
-  dac2.begin();
 
   // Set 14 bits for bender, modwheel, and aftertouch
   analogWriteResolution(14);
@@ -137,10 +130,6 @@ void setup() {
   pinMode(5, OUTPUT); // Aftertouch out
   pinMode(4, OUTPUT); // Pitchbend out
 }
-
-// Initialize serial MIDI input on UART pin
-// MIDI.begin(Serial1);
-// Serial.begin(115200);
 
 //------------------------------------ MAIN LOOP ----------------------------------------------------------------------------------
 //---------------------------------------------------------------------------------------------------------------------------------
@@ -183,28 +172,34 @@ void loop() {
     }
 
     // ----------------------- GPIO Outputs ----------------
-    void GPIOout() {
-      for (int i = 0; i < NUM_VOICES; i++) {
-        // Output gate
-        digitalWrite(30 - i, voices[i].noteOn ? HIGH : LOW);
-        // Output velocity
-        analogWrite(14 - i, voices[i].velocity);
-      }
+    for (int i = 0; i < NUM_VOICES; i++) {
+      // Output gate
+      digitalWrite(30 - i, voices[i].noteOn ? HIGH : LOW);
+      // Output velocity
+      analogWrite(14 - i, voices[i].velocity);
     }
   }
 
   // --------------------Write note frequs to DAC boards. ---------------------
   // ****************** WARNING: Connect VDD to 5 volts!!! **********************
-  void writeNoteFreqVoltages(){
-    const int ADCChans[] = {MCP4728_CHANNEL_A, MCP4728_CHANNEL_B, MCP4728_CHANNEL_C, MCP4728_CHANNEL_D, MCP4728_CHANNEL_A, MCP4728_CHANNEL_B, MCP4728_CHANNEL_C, MCP4728_CHANNEL_D};
-    for (int i = 0; i < NUM_VOICES; i++){
-      float noteNum = voices[i].noteNumber;
-      float baseFreq = noteFreq[(int)noteNum];
-      if (i < 4){
-        dac1.setChannelValue(ADCChans[i], noteVolt[baseFreq], MCP4728_VREF_VDD);
-      } else {
-        dac2.setChannelValue(ADCChans[i], noteVolt[baseFreq], MCP4728_VREF_VDD);
-      }
+  // Initialize I2C communication
+  Wire.begin(400000);
+  Adafruit_MCP4728 dac1;
+  Adafruit_MCP4728 dac2;
+  dac1.begin();
+  dac2.begin();
+
+  const int ADCChans[] = {MCP4728_CHANNEL_A, MCP4728_CHANNEL_B, MCP4728_CHANNEL_C, MCP4728_CHANNEL_D, MCP4728_CHANNEL_A, MCP4728_CHANNEL_B, MCP4728_CHANNEL_C, MCP4728_CHANNEL_D};
+  
+  for (int i = 0; i < NUM_VOICES; i++){
+    float noteNum = voices[i].noteNumber;
+    float baseFreq = noteFreq[(int)noteNum];
+    if (i < 4){
+      // dac1.setChannelValue(ADCChans[i], noteVolt[baseFreq], MCP4728_VREF_VDD);
+      dac1.setChannelValue(ADCChans[i], noteVolt[voices[i].noteNumber], MCP4728_VREF_VDD);
+    } else {
+      // dac2.setChannelValue(ADCChans[i], noteVolt[baseFreq], MCP4728_VREF_VDD);
+      dac2.setChannelValue(ADCChans[i], noteVolt[voices[i].noteNumber], MCP4728_VREF_VDD);
     }
   }
 }  
