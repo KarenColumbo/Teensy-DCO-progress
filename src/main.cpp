@@ -188,7 +188,6 @@ void loop() {
   Adafruit_MCP4728 dac2;
   dac1.begin();
   dac2.begin();
-
   dac1.setChannelValue(MCP4728_CHANNEL_A, noteVolt[voices[0].noteNumber], MCP4728_VREF_VDD);
   dac1.setChannelValue(MCP4728_CHANNEL_B, noteVolt[voices[1].noteNumber], MCP4728_VREF_VDD);
   dac1.setChannelValue(MCP4728_CHANNEL_C, noteVolt[voices[2].noteNumber], MCP4728_VREF_VDD);
