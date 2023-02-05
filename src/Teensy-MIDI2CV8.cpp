@@ -19,19 +19,30 @@ const float noteFreq[85]={
   4186.0090
 };
 
-// --------------------- Function to fill a DAC output voltage array with 12 bit voltages between 0 volt (= MIDI C1) and 5.0 volt (MIDI note C8)
-float Calc12BitVolt(float frequency){   
-  // map MIDI note C1 (frequency 32.7032) to 12 bit DAC voltage value 0 and MIDI note C8 (frequency 4186.0090) to 12 bit DAC voltage value 4095 
-  int twelveBitVoltage = 4095 * (log2(frequency) - log2(32.7032));
-  return twelveBitVoltage;
-}
-
 void FillNoteVoltArray(){
   float noteVolt[85];
-  for(int i = 0; i < 85; i++){
-    noteVolt[i] = Calc12BitVolt(noteFreq[i])/4095.0 * 5.0; 
+  noteVolt[0] = 0.0;
+  for(int i = 1; i < 85; i++){
+    float frequency = noteFreq[i];
+    int twelveBitVoltage = 4095 * (log2(frequency) - log2(32.7032));
+    noteVolt[i] = (float)twelveBitVoltage/4095.0 * 5.0; 
   }
 }
+
+
+
+// --------------------- Function to fill a DAC output voltage array with 12 bit voltages between 0 volt (= MIDI C1) and 5.0 volt (MIDI note C8)
+//float Calc12BitVolt(float frequency){   
+  // map MIDI note C1 (frequency 32.7032) to 12 bit DAC voltage value 0 and MIDI note C8 (frequency 4186.0090) to 12 bit DAC voltage value 4095 
+  //int twelveBitVoltage = 4095 * (log2(frequency) - log2(32.7032));
+  //return twelveBitVoltage;
+//}
+//void FillNoteVoltArray(){
+//  float noteVolt[85];
+//  for(int i = 0; i < 85; i++){
+//    noteVolt[i] = Calc12BitVolt(noteFreq[i])/4095.0 * 5.0; 
+//  }
+//}
 
 // ------------------------------------- Voice buffer init --------------------------------------------------------------
 
