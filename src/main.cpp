@@ -102,6 +102,7 @@ void noteOff(uint8_t noteNumber) {
   int voice = findVoice(noteNumber);
   if (voice != -1) {
     voices[voice].noteOn = false;
+    voices[voice].velocity = 0;
   }
 }
 
