@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include <MIDI.h>
 #include <Adafruit_MCP4728.h>
+#include <SoftwareSerial.h>
 
 #define NUM_VOICES 8
 #define MIDI_CHANNEL 1
@@ -19,8 +20,11 @@ const float noteFreq[85]={
   4186.0090
 };
 
+MIDI_CREATE_INSTANCE(HardwareSerial, Serial1, MIDI);
+
+float noteVolt[85];
+
 void FillNoteVoltArray(){
-  float noteVolt[85];
   noteVolt[0] = 0.0;
   for(int i = 1; i < 85; i++){
     float frequency = noteFreq[i];
@@ -113,12 +117,6 @@ void setup() {
 
   // Set 14 bits for bender, modwheel, and aftertouch
   analogWriteResolution(14);
-
-  // Initialize GPIO pins
-  initialize_GPIO();
-}
-
-void initialize_GPIO() {
   pinMode(30, OUTPUT); // Gate 08
   pinMode(29, OUTPUT); // Gate 07
   pinMode(28, OUTPUT); // Gate 06
@@ -140,10 +138,9 @@ void initialize_GPIO() {
   pinMode(4, OUTPUT); // Pitchbend out
 }
 
-MIDI_CREATE_INSTANCE(HardwareSerial, Serial1, MIDI);
 // Initialize serial MIDI input on UART pin
-MIDI.begin(Serial1);
-Serial.begin(115200);
+// MIDI.begin(Serial1);
+// Serial.begin(115200);
 
 //------------------------------------ MAIN LOOP ----------------------------------------------------------------------------------
 //---------------------------------------------------------------------------------------------------------------------------------
