@@ -8,8 +8,8 @@
 
 #define NUM_VOICES 8
 #define MIDI_CHANNEL 1
-#define PITCH_POS = 2; // Pitchbend range in +/- benderValue
-#define PITCH_NEG = -2
+#define PITCH_POS 2 // Pitchbend range in +/- benderValue
+#define PITCH_NEG -2
 
 // --------------------------------- Velocity Voltages 
 const float veloVolt[128]={
