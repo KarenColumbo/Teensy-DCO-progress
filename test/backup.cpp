@@ -232,7 +232,6 @@ void loop() {
       if (voices[i].bendedNote > 4095) {
         voices[i].bendedNote = 4095;
       }
-        }
     }
   }
 
