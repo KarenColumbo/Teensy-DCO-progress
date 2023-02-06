@@ -12,7 +12,7 @@
 #define PITCH_NEG -2
 
 // --------------------------------- Velocity Voltages 
-const float veloVolt[128]={
+const float veloVoltLin[128]={
   0, 32, 64, 96, 128, 160, 192, 224, 
   256, 288, 320, 352, 384, 416, 448, 480, 
   512, 544, 576, 608, 640, 672, 704, 736, 
@@ -29,6 +29,10 @@ const float veloVolt[128]={
   3328, 3360, 3392, 3424, 3456, 3488, 3520, 3552, 
   3584, 3616, 3648, 3680, 3712, 3744, 3776, 3808, 
   3840, 3872, 3904, 3936, 3968, 4000, 4032, 4064
+};
+
+const float veloVoltLog[128]={
+1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 5, 5, 11, 11, 15, 16, 16, 17, 21, 22, 23, 39, 41, 42, 48, 49, 55, 57, 59, 66, 93, 96, 104, 106, 115, 118, 127, 130, 139, 181, 185, 195, 206, 211, 222, 226, 238, 250, 309, 323, 337, 343, 357, 371, 386, 393, 408, 496, 513, 521, 538, 556, 574, 592, 611, 629, 741, 762, 783, 804, 826, 848, 870, 892, 915, 1054, 1078, 1103, 1129, 1154, 1180, 1206, 1245, 1272, 1441, 1470, 1512, 1542, 1572, 1602, 1646, 1677, 1709, 1924, 1958, 1992, 2041, 2075, 2125, 2161, 2196, 2248, 2500, 2539, 2593, 2633, 2689, 2729, 2785, 2826, 2884, 3176, 3220, 3282, 3343, 3389, 3451, 3497, 3561, 3626, 3961, 4028
 };
 
 // ----------------------------- 12 bit DAC for 1V/oct C2-C7
@@ -211,14 +215,14 @@ void loop() {
   }
 
   // --------------------- Write velocity voltages to DAC boards 
-  dac3.setChannelValue(MCP4728_CHANNEL_A, veloVolt[voices[0].velocity], MCP4728_VREF_VDD);
-  dac3.setChannelValue(MCP4728_CHANNEL_B, veloVolt[voices[1].velocity], MCP4728_VREF_VDD);
-  dac3.setChannelValue(MCP4728_CHANNEL_C, veloVolt[voices[2].velocity], MCP4728_VREF_VDD);
-  dac3.setChannelValue(MCP4728_CHANNEL_D, veloVolt[voices[3].velocity], MCP4728_VREF_VDD);
-  dac4.setChannelValue(MCP4728_CHANNEL_A, veloVolt[voices[4].velocity], MCP4728_VREF_VDD);
-  dac4.setChannelValue(MCP4728_CHANNEL_B, veloVolt[voices[5].velocity], MCP4728_VREF_VDD);
-  dac4.setChannelValue(MCP4728_CHANNEL_C, veloVolt[voices[6].velocity], MCP4728_VREF_VDD);
-  dac4.setChannelValue(MCP4728_CHANNEL_D, veloVolt[voices[7].velocity], MCP4728_VREF_VDD);
+  dac3.setChannelValue(MCP4728_CHANNEL_A, veloVoltLin[voices[0].velocity], MCP4728_VREF_VDD);
+  dac3.setChannelValue(MCP4728_CHANNEL_B, veloVoltLin[voices[1].velocity], MCP4728_VREF_VDD);
+  dac3.setChannelValue(MCP4728_CHANNEL_C, veloVoltLin[voices[2].velocity], MCP4728_VREF_VDD);
+  dac3.setChannelValue(MCP4728_CHANNEL_D, veloVoltLin[voices[3].velocity], MCP4728_VREF_VDD);
+  dac4.setChannelValue(MCP4728_CHANNEL_A, veloVoltLin[voices[4].velocity], MCP4728_VREF_VDD);
+  dac4.setChannelValue(MCP4728_CHANNEL_B, veloVoltLin[voices[5].velocity], MCP4728_VREF_VDD);
+  dac4.setChannelValue(MCP4728_CHANNEL_C, veloVoltLin[voices[6].velocity], MCP4728_VREF_VDD);
+  dac4.setChannelValue(MCP4728_CHANNEL_D, veloVoltLin[voices[7].velocity], MCP4728_VREF_VDD);
   
   // -------------------- Write bended note frequency voltages to DAC boards 
   dac1.setChannelValue(MCP4728_CHANNEL_A, voices[0].bendedNote, MCP4728_VREF_VDD);
