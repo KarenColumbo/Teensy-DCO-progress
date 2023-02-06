@@ -228,6 +228,13 @@ void loop() {
       digitalWrite(30 - i, voices[i].noteOn ? HIGH : LOW);
       unsigned int noteBended = noteVolt[voices[0].noteNumber];
       voices[i].bendedNote = noteBended + (benderValue * 68);
+      if (voices[i].bendedNote < 0) {
+        voices[i].bendedNote = 0;
+      }
+      if (voices[i].bendedNote > 4095) {
+        voices[i].bendedNote = 4095;
+      }
+        }
     }
   }
 
