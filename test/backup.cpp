@@ -203,7 +203,7 @@ void loop() {
     if (MIDI.getType() == midi::PitchBend && MIDI.getChannel() == MIDI_CHANNEL) {
       uint16_t pitchBend = MIDI.getData1() | (MIDI.getData2() << 7);
       int pitchBendPWM = map(pitchBend, 0, 16383, 0, 16383 << 2);
-      benderValue = map(pitchBendPWM, 0, 16383 << 2, PITCH_NEG, PITCH_POS);
+      benderValue = map(pitchBend, 0, 16383 << 2, PITCH_NEG, PITCH_POS);
       analogWrite(4, pitchBendPWM);
     }
 
