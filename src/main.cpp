@@ -8,7 +8,7 @@
 
 #define NUM_VOICES 8
 #define MIDI_CHANNEL 1
-#define PITCH_POS = 2; // Pitchbend range in +/-
+#define PITCH_POS = 2; // Pitchbend range in +/- benderValue
 #define PITCH_NEG = -2
 
 // --------------------------------- Velocity Voltages 
@@ -30,31 +30,6 @@ const float veloVolt[128]={
   3584, 3616, 3648, 3680, 3712, 3744, 3776, 3808, 
   3840, 3872, 3904, 3936, 3968, 4000, 4032, 4064
 };
-
-//const int N_NOTES = 60; // number of notes in the range
-//const int MIDI_LOWEST = 36; // MIDI note number for C2
-//const int MIDI_HIGHEST = 96; // MIDI note number for C7
-//const float V_LOWEST = 0.0; // lowest voltage in the range
-//const float V_RANGE = 5.0; // voltage range in volts
-//const int DAC_MAX = 4095; // maximum value for 12-bit DAC
-//int noteVolts[N_NOTES];
-//void fillNoteVoltsArray() {
-//  for (int i = 0; i < N_NOTES; i++) {
-//    noteVolts[i] = round((V_LOWEST + (i * (V_RANGE / N_NOTES))) / V_RANGE * DAC_MAX);
-//  }
-//}
-//int main() {
-//  fillNoteVoltsArray();
-//  for (int i = 0; i < N_NOTES; i++) {
-//    std::cout << noteVolts[i];
-//    if (i < N_NOTES - 1) {
-//      std::cout << ", ";
-//    }
-//  }
-//  std::cout << std::endl;
-//  return 0;
-//}
-//}
 
 // ----------------------------- 12 bit DAC for 1V/oct C2-C7
 const unsigned int noteVolt[61] = {
@@ -255,4 +230,3 @@ void loop() {
   dac2.setChannelValue(MCP4728_CHANNEL_C, voices[6].bendedNote, MCP4728_VREF_VDD);
   dac2.setChannelValue(MCP4728_CHANNEL_D, voices[7].bendedNote, MCP4728_VREF_VDD);
 }
-
