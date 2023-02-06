@@ -254,4 +254,8 @@ void loop() {
   dac2.setChannelValue(MCP4728_CHANNEL_B, voices[5].bendedNote, MCP4728_VREF_VDD);
   dac2.setChannelValue(MCP4728_CHANNEL_C, voices[6].bendedNote, MCP4728_VREF_VDD);
   dac2.setChannelValue(MCP4728_CHANNEL_D, voices[7].bendedNote, MCP4728_VREF_VDD);
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> b18b133c5df2182666aacd34410787e776588b29
