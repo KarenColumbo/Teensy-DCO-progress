@@ -13,6 +13,7 @@
 #define CC_TEMPO 5
 
 uint8_t midiTempo;
+uint8_t midiController[10];
 uint16_t benderValue = 0;
 bool susOn = false;
 int arpIndex = 0;
@@ -195,6 +196,16 @@ void setup() {
   pinMode(25, OUTPUT); // Gate 03
   pinMode(24, OUTPUT); // Gate 02
   pinMode(23, OUTPUT); // Gate 01
+  pinMode(18, OUTPUT); // Controller 10
+  pinMode(15, OUTPUT); // Controller 09
+  pinMode(14, OUTPUT); // Controller 08
+  pinMode(13, OUTPUT); // Controller 07
+  pinMode(12, OUTPUT); // Controller 06
+  pinMode(11, OUTPUT); // Controller 05
+  pinMode(10, OUTPUT); // Controller 04
+  pinMode(9, OUTPUT); // Controller 03
+  pinMode(8, OUTPUT); // Controller 02
+  pinMode(7, OUTPUT); // Controller 01
   pinMode(6, OUTPUT); // Modwheel out
   pinMode(5, OUTPUT); // Aftertouch out
   pinMode(4, OUTPUT); // Pitchbend out
@@ -251,6 +262,46 @@ void loop() {
       sixteenthNoteDuration = (60 / midiTempo) * 1000 / 4;
     }
     
+    if (MIDI.getType() == midi::ControlChange && MIDI.getChannel() == MIDI_CHANNEL) {
+      uint8_t ccNumber = MIDI.getData1();
+      uint8_t ccValue = MIDI.getData2();
+      if (ccNumber >= 70 && ccNumber <= 79) {
+        uint16_t mappedValue = map(ccValue, 0, 127, 0, 16383);
+        switch (ccNumber) {
+          case 79:
+            analogWrite(18, mappedValue >> 7);
+          break;
+          case 78:
+            analogWrite(15, mappedValue >> 7);
+          break;
+          case 77:
+            analogWrite(14, mappedValue >> 7);
+          break;
+          case 76:
+            analogWrite(13, mappedValue >> 7);
+          break;
+          case 75:
+            analogWrite(12, mappedValue >> 7);
+          break;
+          case 74:
+            analogWrite(11, mappedValue >> 7);
+          break;
+          case 73:
+            analogWrite(10, mappedValue >> 7);
+          break;
+          case 72:
+            analogWrite(9, mappedValue >> 7);
+          break;
+          case 71:
+            analogWrite(8, mappedValue >> 7);
+          break;
+          case 70:
+            analogWrite(7, mappedValue >> 7);
+          break;
+        }
+      }
+    }
+
     // ---------------------------- Read and store sustain pedal status
     if (MIDI.getType() == midi::ControlChange && MIDI.getData1() == 64 && MIDI.getChannel() == MIDI_CHANNEL) {
       uint8_t sustainPedal = MIDI.getData2();
