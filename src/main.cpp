@@ -18,6 +18,8 @@ bool susOn = false;
 int arpIndex = 0;
 int numArpNotes = 0;
 int arpNotes[NUM_VOICES];
+uint16_t eighthNoteDuration = 0;
+uint16_t sixteenthNoteDuration = 0; 
 
 // --------------------------------- Velocity Voltages 
 const float veloVoltLin[128]={
@@ -245,6 +247,8 @@ void loop() {
       if (ccNumber == CC_TEMPO) {
         midiTempo = ccValue;
       }
+      eighthNoteDuration = (60 / midiTempo) * 1000 / 2;
+      sixteenthNoteDuration = (60 / midiTempo) * 1000 / 4;
     }
     
     // ---------------------------- Read and store sustain pedal status
