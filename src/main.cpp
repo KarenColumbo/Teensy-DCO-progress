@@ -11,6 +11,9 @@
 #define PITCH_POS 2 // Pitchbend range in +/- benderValue
 #define PITCH_NEG -2
 
+uint16_t benderValue = 0;
+bool SusOn = false;
+
 // --------------------------------- Velocity Voltages 
 const float veloVoltLin[128]={
   0, 32, 64, 96, 128, 160, 192, 224, 
@@ -53,8 +56,6 @@ const unsigned int noteVolt[61] = {
   };
 
 MIDI_CREATE_INSTANCE(HardwareSerial, Serial1, MIDI);
-
-uint16_t benderValue = 0;
 
 // ------------------------------------- Voice buffer init 
 struct Voice {
@@ -129,6 +130,7 @@ void noteOff(uint8_t noteNumber) {
   }
 }
 
+// ------------------------------------ Initialize DACs
 Adafruit_MCP4728 dac1;
 Adafruit_MCP4728 dac2;
 Adafruit_MCP4728 dac3;
@@ -199,19 +201,29 @@ void loop() {
       analogWrite(5, channelPressurePWM);
     }
 
-    // -------------------------Check for and write incoming Modulation Wheel 
+    // ------------------------- Check for and write incoming Modulation Wheel 
     if (MIDI.getType() == midi::ControlChange && MIDI.getData1() == 1 && MIDI.getChannel() == MIDI_CHANNEL) {
       uint8_t modulationWheel = MIDI.getData2();
       int modulationWheelPWM = map(modulationWheel, 0, 127, 0, 8191 << 2);
       analogWrite(6, modulationWheelPWM);
     }
 
-    // -------------------------Check for and write incoming MIDI tempo 
+    // ------------------------- Check for and write incoming MIDI tempo 
     if (MIDI.getType() == midi::ControlChange && MIDI.getChannel() == MIDI_CHANNEL) {
       uint8_t ccNumber = MIDI.getData1();
       uint8_t ccValue = MIDI.getData2();
       if (ccNumber == CC_TEMPO) {
         midiTempo = ccValue;
+      }
+    }
+    
+    // ---------------------------- Read and store sustain pedal status
+    if (MIDI.getType() == midi::ControlChange && MIDI.getData1() == 64 && MIDI.getChannel() == MIDI_CHANNEL) {
+      uint8_t sustainPedal = MIDI.getData2();
+      if (sustainPedal > 63) {
+         SusOn = true;
+      } else {
+         SusOn = false;
       }
     }
 
