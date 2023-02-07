@@ -267,7 +267,7 @@ void loop() {
     }
   }
 
-  //-------------------------- Fil Arpeggio buffer
+  //-------------------------- Fill Arpeggio buffer
   fillArpNotes();
 
   // --------------------- Write velocity voltages to DAC boards, Vref = Vdd 
