@@ -67,13 +67,13 @@ MIDI_CREATE_INSTANCE(HardwareSerial, Serial1, MIDI);
 // ------------------------------------- Voice buffer init 
 struct Voice {
   unsigned long noteAge;
-  uint8_t noteNumber;
+  uint8_t midiNote;
   bool noteOn;
   uint8_t velocity;
   uint16_t pitchBend;
   uint8_t channelPressure;
   uint8_t modulationWheel;
-  uint8_t prevNoteNumber;
+  uint8_t prevNote;
   uint16_t bendedNote;
 };
 
@@ -82,13 +82,13 @@ Voice voices[NUM_VOICES];
 void initializeVoices() {
   for (int i = 0; i < NUM_VOICES; i++) {
     voices[i].noteAge = 0;
-    voices[i].noteNumber = 0;
+    voices[i].midiNote = 0;
     voices[i].noteOn = false;
     voices[i].velocity = 0;
     voices[i].pitchBend = 0x2000;
     voices[i].channelPressure = 0;
     voices[i].modulationWheel = 0;
-    voices[i].prevNoteNumber = 0;
+    voices[i].prevNote = 0;
     voices[i].bendedNote = 0x2000;
   }
 }
@@ -106,10 +106,10 @@ int findOldestVoice() {
   return oldestVoice;
 }
 
-int findVoice(uint8_t noteNumber) {
+int findVoice(uint8_t midiNote) {
   int foundVoice = -1;
   for (int i = 0; i < NUM_VOICES; i++) {
-    if (voices[i].noteOn && voices[i].noteNumber == noteNumber) {
+    if (voices[i].noteOn && voices[i].midiNote == midiNote) {
       foundVoice = i;
       break;
     }
@@ -117,20 +117,20 @@ int findVoice(uint8_t noteNumber) {
   return foundVoice;
 }
 
-void noteOn(uint8_t noteNumber, uint8_t velocity) {
-  int voice = findVoice(noteNumber);
+void noteOn(uint8_t midiNote, uint8_t velocity) {
+  int voice = findVoice(midiNote);
   if (voice == -1) {
     voice = findOldestVoice();
-    voices[voice].prevNoteNumber = voices[voice].noteNumber;
+    voices[voice].prevNote = voices[voice].midiNote;
   }
   voices[voice].noteAge = millis();
-  voices[voice].noteNumber = noteNumber;
+  voices[voice].midiNote = midiNote;
   voices[voice].noteOn = true;
   voices[voice].velocity = velocity;
 }
 
-void noteOff(uint8_t noteNumber) {
-  int voice = findVoice(noteNumber);
+void noteOff(uint8_t midiNote) {
+  int voice = findVoice(midiNote);
   if (voice != -1) {
     voices[voice].noteOn = false;
     voices[voice].velocity = 0;
@@ -142,7 +142,7 @@ void fillArpNotes() {
   arpIndex = 0;
   for (int i = 0; i < NUM_VOICES; i++) {
     if (voices[i].noteOn) {
-      arpNotes[arpIndex++] = voices[i].noteNumber;
+      arpNotes[arpIndex++] = voices[i].midiNote;
     }
   }
   numArpNotes = arpIndex;
@@ -208,13 +208,13 @@ void loop() {
 
     // ------------------------Check for and buffer incoming Note On message
     if (MIDI.getType() == midi::NoteOn && MIDI.getChannel() == MIDI_CHANNEL) {
-      uint8_t noteNumber = MIDI.getData1();
+      uint8_t midiNote = MIDI.getData1();
       uint8_t velocity = MIDI.getData2();
       if (velocity > 0) {
-        noteOn(noteNumber, velocity);
+        noteOn(midiNote, velocity);
       } 
       if (velocity == 0 && susOn == false) {
-        noteOff(noteNumber);
+        noteOff(midiNote);
       }
     }
     
@@ -265,7 +265,7 @@ void loop() {
     for (int i = 0; i < NUM_VOICES; i++) {
       // Output gate
       digitalWrite(30 - i, voices[i].noteOn ? HIGH : LOW);
-      voices[i].bendedNote = noteVolt[voices[0].noteNumber] + (benderValue * 67.9);
+      voices[i].bendedNote = noteVolt[voices[0].midiNote] + (benderValue * 67.9);
       if (voices[i].bendedNote < 0) {
         voices[i].bendedNote = 0;
       }
