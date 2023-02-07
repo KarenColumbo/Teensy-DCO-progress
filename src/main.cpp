@@ -86,7 +86,6 @@ void initializeVoices() {
 }
 
 // ------------------------------------------ Voice buffer subroutines 
-
 int findOldestVoice() {
   int oldestVoice = 0;
   unsigned long oldestAge = 0xFFFFFFFF;
@@ -169,7 +168,6 @@ void setup() {
 }
 
 //------------------------------------ MAIN LOOP 
-
 void loop() {
   
   // ---------------------- Serial MIDI stuff 
@@ -206,6 +204,15 @@ void loop() {
       uint8_t modulationWheel = MIDI.getData2();
       int modulationWheelPWM = map(modulationWheel, 0, 127, 0, 8191 << 2);
       analogWrite(6, modulationWheelPWM);
+    }
+
+    // -------------------------Check for and write incoming MIDI tempo 
+    if (MIDI.getType() == midi::ControlChange && MIDI.getChannel() == MIDI_CHANNEL) {
+      uint8_t ccNumber = MIDI.getData1();
+      uint8_t ccValue = MIDI.getData2();
+      if (ccNumber == CC_TEMPO) {
+        midiTempo = ccValue;
+      }
     }
 
     // ----------------------- Write gates and velocity outputs, bend notes 
