@@ -13,6 +13,8 @@
 
 uint16_t benderValue = 0;
 bool SusOn = false;
+int arpIndex = 0;
+int arpNotes[NUM_VOICES];
 
 // --------------------------------- Velocity Voltages 
 const float veloVoltLin[128]={
@@ -130,6 +132,25 @@ void noteOff(uint8_t noteNumber) {
   }
 }
 
+//-------------------------------- Fill Arpeggio buffer from oldest to youngest note
+void fillArpNotes() {
+  int arpIndex = 0;
+  for (int i = 0; i < NUM_VOICES; i++) {
+    if (voices[i].noteOn) {
+      arpNotes[arpIndex++] = voices[i].noteNumber;
+    }
+  }
+  for (int i = 0; i < NUM_VOICES; i++) {
+    for (int j = 0; j < arpIndex - 1; j++) {
+      if (voices[i].noteAge < voices[j].noteAge) {
+        int temp = arpNotes[j];
+        arpNotes[j] = arpNotes[j + 1];
+        arpNotes[j + 1] = temp;
+      }
+    }
+  }
+}
+
 // ------------------------------------ Initialize DACs
 Adafruit_MCP4728 dac1;
 Adafruit_MCP4728 dac2;
@@ -142,6 +163,10 @@ void setup() {
   dac2.begin(0x61);
   dac1.begin(0x62);
   dac2.begin(0x63);
+
+  for (int i = 0; i < NUM_VOICES; i++) {
+    arpNotes[i] = -1;
+  }
 
   // ****************** WARNING: Connect VDD to 5 volts!!! 
   // Wiring:
@@ -181,11 +206,12 @@ void loop() {
       uint8_t velocity = MIDI.getData2();
       if (velocity > 0) {
         noteOn(noteNumber, velocity);
-      } else {
+      } 
+      if (velocity == 0 && susOn == false) {
         noteOff(noteNumber);
       }
     }
-
+    
     // ------------------ Check for and write incoming Pitch Bend, map bend factor 
     if (MIDI.getType() == midi::PitchBend && MIDI.getChannel() == MIDI_CHANNEL) {
       uint16_t pitchBend = MIDI.getData1() | (MIDI.getData2() << 7);
@@ -240,6 +266,9 @@ void loop() {
       }
     }
   }
+
+  //-------------------------- Fil Arpeggio buffer
+  fillArpNotes();
 
   // --------------------- Write velocity voltages to DAC boards, Vref = Vdd 
   dac3.setChannelValue(MCP4728_CHANNEL_A, veloVoltLin[voices[0].velocity]);
