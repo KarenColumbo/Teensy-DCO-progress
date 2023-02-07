@@ -10,10 +10,13 @@
 #define MIDI_CHANNEL 1
 #define PITCH_POS 2 // Pitchbend range in +/- benderValue
 #define PITCH_NEG -2
+#define CC_TEMPO 5
 
+uint8_t midiTempo;
 uint16_t benderValue = 0;
-bool SusOn = false;
+bool susOn = false;
 int arpIndex = 0;
+int numArpNotes = 0;
 int arpNotes[NUM_VOICES];
 
 // --------------------------------- Velocity Voltages 
@@ -134,12 +137,13 @@ void noteOff(uint8_t noteNumber) {
 
 //-------------------------------- Fill Arpeggio buffer from oldest to youngest note
 void fillArpNotes() {
-  int arpIndex = 0;
+  arpIndex = 0;
   for (int i = 0; i < NUM_VOICES; i++) {
     if (voices[i].noteOn) {
       arpNotes[arpIndex++] = voices[i].noteNumber;
     }
   }
+  numArpNotes = arpIndex;
   for (int i = 0; i < NUM_VOICES; i++) {
     for (int j = 0; j < arpIndex - 1; j++) {
       if (voices[i].noteAge < voices[j].noteAge) {
@@ -247,9 +251,9 @@ void loop() {
     if (MIDI.getType() == midi::ControlChange && MIDI.getData1() == 64 && MIDI.getChannel() == MIDI_CHANNEL) {
       uint8_t sustainPedal = MIDI.getData2();
       if (sustainPedal > 63) {
-         SusOn = true;
+         susOn = true;
       } else {
-         SusOn = false;
+         susOn = false;
       }
     }
 
