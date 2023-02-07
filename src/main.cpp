@@ -222,23 +222,23 @@ void loop() {
     }
   }
 
-  // --------------------- Write velocity voltages to DAC boards 
-  dac3.setChannelValue(MCP4728_CHANNEL_A, veloVoltLin[voices[0].velocity], MCP4728_VREF_VDD);
-  dac3.setChannelValue(MCP4728_CHANNEL_B, veloVoltLin[voices[1].velocity], MCP4728_VREF_VDD);
-  dac3.setChannelValue(MCP4728_CHANNEL_C, veloVoltLin[voices[2].velocity], MCP4728_VREF_VDD);
-  dac3.setChannelValue(MCP4728_CHANNEL_D, veloVoltLin[voices[3].velocity], MCP4728_VREF_VDD);
-  dac4.setChannelValue(MCP4728_CHANNEL_A, veloVoltLin[voices[4].velocity], MCP4728_VREF_VDD);
-  dac4.setChannelValue(MCP4728_CHANNEL_B, veloVoltLin[voices[5].velocity], MCP4728_VREF_VDD);
-  dac4.setChannelValue(MCP4728_CHANNEL_C, veloVoltLin[voices[6].velocity], MCP4728_VREF_VDD);
-  dac4.setChannelValue(MCP4728_CHANNEL_D, veloVoltLin[voices[7].velocity], MCP4728_VREF_VDD);
+  // --------------------- Write velocity voltages to DAC boards, Vref = Vdd 
+  dac3.setChannelValue(MCP4728_CHANNEL_A, veloVoltLin[voices[0].velocity]);
+  dac3.setChannelValue(MCP4728_CHANNEL_B, veloVoltLin[voices[1].velocity]);
+  dac3.setChannelValue(MCP4728_CHANNEL_C, veloVoltLin[voices[2].velocity]);
+  dac3.setChannelValue(MCP4728_CHANNEL_D, veloVoltLin[voices[3].velocity]);
+  dac4.setChannelValue(MCP4728_CHANNEL_A, veloVoltLin[voices[4].velocity]);
+  dac4.setChannelValue(MCP4728_CHANNEL_B, veloVoltLin[voices[5].velocity]);
+  dac4.setChannelValue(MCP4728_CHANNEL_C, veloVoltLin[voices[6].velocity]);
+  dac4.setChannelValue(MCP4728_CHANNEL_D, veloVoltLin[voices[7].velocity]);
   
-  // -------------------- Write bended note frequency voltages to DAC boards 
-  dac1.setChannelValue(MCP4728_CHANNEL_A, voices[0].bendedNote, MCP4728_VREF_VDD);
-  dac1.setChannelValue(MCP4728_CHANNEL_B, voices[1].bendedNote, MCP4728_VREF_VDD);
-  dac1.setChannelValue(MCP4728_CHANNEL_C, voices[2].bendedNote, MCP4728_VREF_VDD);
-  dac1.setChannelValue(MCP4728_CHANNEL_D, voices[3].bendedNote, MCP4728_VREF_VDD);
-  dac2.setChannelValue(MCP4728_CHANNEL_A, voices[4].bendedNote, MCP4728_VREF_VDD);
-  dac2.setChannelValue(MCP4728_CHANNEL_B, voices[5].bendedNote, MCP4728_VREF_VDD);
-  dac2.setChannelValue(MCP4728_CHANNEL_C, voices[6].bendedNote, MCP4728_VREF_VDD);
-  dac2.setChannelValue(MCP4728_CHANNEL_D, voices[7].bendedNote, MCP4728_VREF_VDD);
+  // -------------------- Write bended note frequency voltages to DAC boards, , Vref = Vdd 
+  dac1.setChannelValue(MCP4728_CHANNEL_A, voices[0].bendedNote);
+  dac1.setChannelValue(MCP4728_CHANNEL_B, voices[1].bendedNote);
+  dac1.setChannelValue(MCP4728_CHANNEL_C, voices[2].bendedNote);
+  dac1.setChannelValue(MCP4728_CHANNEL_D, voices[3].bendedNote);
+  dac2.setChannelValue(MCP4728_CHANNEL_A, voices[4].bendedNote);
+  dac2.setChannelValue(MCP4728_CHANNEL_B, voices[5].bendedNote);
+  dac2.setChannelValue(MCP4728_CHANNEL_C, voices[6].bendedNote);
+  dac2.setChannelValue(MCP4728_CHANNEL_D, voices[7].bendedNote);
 }
