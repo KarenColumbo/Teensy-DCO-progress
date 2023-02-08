@@ -196,8 +196,8 @@ void setup() {
   // Initialize I2C communication
   dac1.begin(0x60);
   dac2.begin(0x61);
-  dac1.begin(0x62);
-  dac2.begin(0x63);
+  dac3.begin(0x62);
+  dac4.begin(0x63);
   Wire.begin(400000);
   
   // Set 14 bits Hardware PWM for pitchbender and 8 note voltage outputs
@@ -285,6 +285,8 @@ void loop() {
     
   // Check for incoming MIDI messages
   if (MIDI.read()) {
+
+    //------------------------ Read MIDI controller 70-79, write to DACs
     if (MIDI.getType() == midi::ControlChange && MIDI.getChannel() == MIDI_CHANNEL) {
       uint8_t ccNumber = MIDI.getData1();
       uint8_t ccValue = MIDI.getData2();
