@@ -24,13 +24,6 @@ int arpNotes[NUM_VOICES];
 uint16_t eighthNoteDuration = 0;
 uint16_t sixteenthNoteDuration = 0; 
 
-// ----------- Initialize Shift Registers
-const int SER = 10; // Data Pin
-const int RCLK = 11; // Storage Register Clock Pin
-const int SRCLK = 12; // Shift Register Clock Pin
-const int NUM_REGISTERS = 3;
-ShiftReg shiftRegisters[NUM_REGISTERS];
-
 // --------------------------------- 12 bit Velocity Voltages - linear distribution
 const float veloVoltLin[128]={
   0, 32, 64, 96, 128, 160, 192, 224, 
@@ -192,11 +185,6 @@ void setup() {
     arpNotes[i] = -1;
   }
 
-  // ------------------------------------------ Initialize Shift Registers
-  for (int i = 0; i < NUM_REGISTERS; i++) {
-    shiftRegisters[i].setup(SER, SRCLK, RCLK);
-  }
-
   // ****************** WARNING: Connect VDD to 5 volts!!! 
   // ****************** DAC Wiring:
   // Teensy 4.1 --> DAC1, DAC2
@@ -231,6 +219,15 @@ void setup() {
   pinMode(23, OUTPUT); // Note 08
   analogWriteFrequency(23, 9155.27);
   
+  pinMode(10, OUTPUT); // Velocity 01
+  pinMode(11, OUTPUT); // Velocity 02
+  pinMode(12, OUTPUT); // Velocity 03
+  pinMode(13, OUTPUT); // Velocity 04
+  pinMode(14, OUTPUT); // Velocity 05
+  pinMode(15, OUTPUT); // Velocity 06
+  pinMode(18, OUTPUT); // Velocity 07
+  pinMode(19, OUTPUT); // Velocity 08
+
   pinMode(33, OUTPUT); // Pitchbender
   analogWriteFrequency(33, 9155.27);
 }
@@ -292,9 +289,7 @@ void loop() {
       uint8_t ccNumber = MIDI.getData1();
       uint8_t ccValue = MIDI.getData2();
       if (ccNumber >= 70 && ccNumber <= 79) {
-        uint8_t registerIndex = (ccNumber - 70) / 8;
-        uint8_t bitIndex = (ccNumber - 70) % 8;
-        sr.writeBit(registerIndex, bitIndex, ccValue > 63);
+        
       }
     }
   }
@@ -339,13 +334,13 @@ void loop() {
   //-------------------------- Fill Arpeggio buffer
   fillArpNotes();
 
-  // --------------------- Write velocity voltages to DAC boards, Vref = Vdd 
-  dac3.setChannelValue(MCP4728_CHANNEL_A, veloVoltLin[voices[0].velocity]);
-  dac3.setChannelValue(MCP4728_CHANNEL_B, veloVoltLin[voices[1].velocity]);
-  dac3.setChannelValue(MCP4728_CHANNEL_C, veloVoltLin[voices[2].velocity]);
-  dac3.setChannelValue(MCP4728_CHANNEL_D, veloVoltLin[voices[3].velocity]);
-  dac4.setChannelValue(MCP4728_CHANNEL_A, veloVoltLin[voices[4].velocity]);
-  dac4.setChannelValue(MCP4728_CHANNEL_B, veloVoltLin[voices[5].velocity]);
-  dac4.setChannelValue(MCP4728_CHANNEL_C, veloVoltLin[voices[6].velocity]);
-  dac4.setChannelValue(MCP4728_CHANNEL_D, veloVoltLin[voices[7].velocity]);
+  // --------------------- Write velocity voltages to velocity GPIOs
+  analogWrite(10,veloVoltLin[voices[0].velocity]);
+  analogWrite(11,veloVoltLin[voices[1].velocity]);
+  analogWrite(12,veloVoltLin[voices[2].velocity]);
+  analogWrite(13,veloVoltLin[voices[3].velocity]);
+  analogWrite(14,veloVoltLin[voices[4].velocity]);
+  analogWrite(15,veloVoltLin[voices[5].velocity]);
+  analogWrite(18,veloVoltLin[voices[6].velocity]);
+  analogWrite(19,veloVoltLin[voices[7].velocity]);
 }
