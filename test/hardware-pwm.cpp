@@ -24,6 +24,13 @@ int arpNotes[NUM_VOICES];
 uint16_t eighthNoteDuration = 0;
 uint16_t sixteenthNoteDuration = 0; 
 
+// ----------- Initialize Shift Registers
+const int SER = 10; // Data Pin
+const int RCLK = 11; // Storage Register Clock Pin
+const int SRCLK = 12; // Shift Register Clock Pin
+const int NUM_REGISTERS = 3;
+ShiftReg shiftRegisters[NUM_REGISTERS];
+
 // --------------------------------- 12 bit Velocity Voltages - linear distribution
 const float veloVoltLin[128]={
   0, 32, 64, 96, 128, 160, 192, 224, 
@@ -178,10 +185,16 @@ Adafruit_MCP4728 dac2;
 Adafruit_MCP4728 dac3;
 Adafruit_MCP4728 dac4;
 
-// ----------------------------------------------- MAIN SETUP 
+// ******************************************************************************************************
+// ************************************************************************ MAIN SETUP 
 void setup() {
   for (int i = 0; i < NUM_VOICES; i++) {
     arpNotes[i] = -1;
+  }
+
+  // ------------------------------------------ Initialize Shift Registers
+  for (int i = 0; i < NUM_REGISTERS; i++) {
+    shiftRegisters[i].setup(SER, SRCLK, RCLK);
   }
 
   // ****************** WARNING: Connect VDD to 5 volts!!! 
@@ -199,16 +212,8 @@ void setup() {
   dac2.begin(0x63);
   Wire.begin(400000);
   
-  // Set 14 bits for bender, modwheel, and aftertouch, set hardware PWM freqs
+  // Set 14 bits Hardware PWM for pitchbender and 8 note voltage outputs
   analogWriteResolution(14);
-  pinMode(10, OUTPUT); // Gate 01
-  pinMode(11, OUTPUT); // Gate 02
-  pinMode(12, OUTPUT); // Gate 03
-  pinMode(13, OUTPUT); // Gate 04
-  pinMode(14, OUTPUT); // Gate 05
-  pinMode(15, OUTPUT); // Gate 06
-  pinMode(18, OUTPUT); // Gate 07
-  pinMode(19, OUTPUT); // Gate 08
   pinMode(2, OUTPUT); // Note 01
   analogWriteFrequency(2, 9155.27);
   pinMode(3, OUTPUT); // Note 02
@@ -225,6 +230,7 @@ void setup() {
   analogWriteFrequency(22, 9155.27);
   pinMode(23, OUTPUT); // Note 08
   analogWriteFrequency(23, 9155.27);
+  
   pinMode(33, OUTPUT); // Pitchbender
   analogWriteFrequency(33, 9155.27);
 }
@@ -249,114 +255,86 @@ void loop() {
     }
     
     // ------------------ Check for and write incoming Pitch Bend, map bend factor 
-    if (MIDI.getType() == midi::PitchBend && MIDI.getChannel() == MIDI_CHANNEL) {
-      uint16_t pitchBend = MIDI.getData1() | (MIDI.getData2() << 7);
-      benderValue = map(pitchBend, 0, 16383, PITCH_NEG, PITCH_POS);
-      analogWrite(33, benderValue);
-    }
+  if (MIDI.getType() == midi::PitchBend && MIDI.getChannel() == MIDI_CHANNEL) {
+    uint16_t pitchBend = MIDI.getData1() | (MIDI.getData2() << 7);
+    benderValue = map(pitchBend, 0, 16383, PITCH_NEG, PITCH_POS);
+    analogWrite(33, benderValue);
+  }
 
-    // ----------------------- Check for and write incoming Aftertouch 
-    if (MIDI.getType() == midi::AfterTouchChannel && MIDI.getChannel() == MIDI_CHANNEL) {
-      uint8_t aftertouch = MIDI.getData1();
-      int channelPressurePWM = map(aftertouch, 0, 127, 0, 8191 << 2);
-      analogWrite(5, channelPressurePWM);
-    }
+  // ----------------------- Check for and write incoming Aftertouch 
+  if (MIDI.getType() == midi::AfterTouchChannel && MIDI.getChannel() == MIDI_CHANNEL) {
+    uint8_t aftertouch = MIDI.getData1();
+    int channelPressurePWM = map(aftertouch, 0, 127, 0, 8191 << 2);
+    analogWrite(5, channelPressurePWM);
+  }
 
-    // ------------------------- Check for and write incoming Modulation Wheel 
-    if (MIDI.getType() == midi::ControlChange && MIDI.getData1() == 1 && MIDI.getChannel() == MIDI_CHANNEL) {
-      uint8_t modulationWheel = MIDI.getData2();
-      int modulationWheelPWM = map(modulationWheel, 0, 127, 0, 8191 << 2);
-      analogWrite(6, modulationWheelPWM);
-    }
+  // ------------------------- Check for and write incoming Modulation Wheel 
+  if (MIDI.getType() == midi::ControlChange && MIDI.getData1() == 1 && MIDI.getChannel() == MIDI_CHANNEL) {
+    uint8_t modulationWheel = MIDI.getData2();
+    int modulationWheelPWM = map(modulationWheel, 0, 127, 0, 8191 << 2);
+    analogWrite(6, modulationWheelPWM);
+  }
 
-    // ------------------------- Check for and write incoming MIDI tempo 
-    if (MIDI.getType() == midi::ControlChange && MIDI.getChannel() == MIDI_CHANNEL) {
-      uint8_t ccNumber = MIDI.getData1();
-      uint8_t ccValue = MIDI.getData2();
-      if (ccNumber == CC_TEMPO) {
-        midiTempo = ccValue;
-      }
-      eighthNoteDuration = (60 / midiTempo) * 1000 / 2;
-      sixteenthNoteDuration = (60 / midiTempo) * 1000 / 4;
+  // ------------------------- Check for and write incoming MIDI tempo 
+  if (MIDI.getType() == midi::ControlChange && MIDI.getChannel() == MIDI_CHANNEL) {
+    uint8_t ccNumber = MIDI.getData1();
+    uint8_t ccValue = MIDI.getData2();
+    if (ccNumber == CC_TEMPO) {
+      midiTempo = ccValue;
     }
+    eighthNoteDuration = (60 / midiTempo) * 1000 / 2;
+    sixteenthNoteDuration = (60 / midiTempo) * 1000 / 4;
+  }
     
+  // Check for incoming MIDI messages
+  if (MIDI.read()) {
     if (MIDI.getType() == midi::ControlChange && MIDI.getChannel() == MIDI_CHANNEL) {
       uint8_t ccNumber = MIDI.getData1();
       uint8_t ccValue = MIDI.getData2();
       if (ccNumber >= 70 && ccNumber <= 79) {
-        uint16_t mappedValue = map(ccValue, 0, 127, 0, 16383);
-        switch (ccNumber) {
-          case 79:
-            //analogWrite(18, mappedValue >> 7);
-          break;
-          case 78:
-            //analogWrite(15, mappedValue >> 7);
-          break;
-          case 77:
-            //analogWrite(14, mappedValue >> 7);
-          break;
-          case 76:
-            //analogWrite(13, mappedValue >> 7);
-          break;
-          case 75:
-            //analogWrite(12, mappedValue >> 7);
-          break;
-          case 74:
-            //analogWrite(11, mappedValue >> 7);
-          break;
-          case 73:
-            //analogWrite(10, mappedValue >> 7);
-          break;
-          case 72:
-            //analogWrite(9, mappedValue >> 7);
-          break;
-          case 71:
-            //analogWrite(8, mappedValue >> 7);
-          break;
-          case 70:
-            //analogWrite(7, mappedValue >> 7);
-          break;
-        }
+        uint8_t registerIndex = (ccNumber - 70) / 8;
+        uint8_t bitIndex = (ccNumber - 70) % 8;
+        sr.writeBit(registerIndex, bitIndex, ccValue > 63);
       }
     }
+  }
 
-    // ---------------------------- Read and store sustain pedal status
-    if (MIDI.getType() == midi::ControlChange && MIDI.getData1() == 64 && MIDI.getChannel() == MIDI_CHANNEL) {
-      uint8_t sustainPedal = MIDI.getData2();
-      if (sustainPedal > 63) {
-         susOn = true;
-      } else {
-         susOn = false;
-      }
+  // ---------------------------- Read and store sustain pedal status
+  if (MIDI.getType() == midi::ControlChange && MIDI.getData1() == 64 && MIDI.getChannel() == MIDI_CHANNEL) {
+    uint8_t sustainPedal = MIDI.getData2();
+    if (sustainPedal > 63) {
+       susOn = true;
+    } else {
+       susOn = false;
     }
+  }
 
-    // ----------------------- Write gates and velocity outputs, bend notes 
+  // ----------------------- Write gates and velocity outputs, bend notes 
+  for (int i = 0; i < NUM_VOICES; i++) {
+    digitalWrite(19 - i, voices[i].noteOn ? HIGH : LOW);
     
-    // Output gate
-    for (int i = 0; i < NUM_VOICES; i++) {
-      digitalWrite(19 - i, voices[i].noteOn ? HIGH : LOW);
-      
-      // Calculate pitchbender factor
-      int midiNoteVoltage = noteVolt[voices[i].midiNote];
-      double semitones = (double)benderValue / (double)16383 * 2.0;
-      double factor = pow(2.0, semitones / 12.0);
-      voices[i].bendedNote = midiNoteVoltage * factor;
-      if (voices[i].bendedNote < 0) {
-        voices[i].bendedNote = 0;
-      }
-      if (voices[i].bendedNote > 16383) {
-        voices[i].bendedNote = 16383;
-      }
+    // Calculate pitchbender factor
+    int midiNoteVoltage = noteVolt[voices[i].midiNote];
+    double semitones = (double)benderValue / (double)16383 * 2.0;
+    double factor = pow(2.0, semitones / 12.0);
+    voices[i].bendedNote = midiNoteVoltage * factor;
+    if (voices[i].bendedNote < 0) {
+      voices[i].bendedNote = 0;
     }
-    // -------------------- Write bended note frequency voltages to Note GPIOs
-    analogWrite(2, voices[0].bendedNote);
-    analogWrite(3, voices[1].bendedNote);
-    analogWrite(4, voices[2].bendedNote);
-    analogWrite(5, voices[3].bendedNote);
-    analogWrite(6, voices[4].bendedNote);
-    analogWrite(9, voices[5].bendedNote);
-    analogWrite(22, voices[6].bendedNote);
-    analogWrite(23, voices[7].bendedNote);
+    if (voices[i].bendedNote > 16383) {
+      voices[i].bendedNote = 16383;
+    }
+  }
+  
+  // -------------------- Write bended note frequency voltages to Note GPIOs
+  analogWrite(2, voices[0].bendedNote);
+  analogWrite(3, voices[1].bendedNote);
+  analogWrite(4, voices[2].bendedNote);
+  analogWrite(5, voices[3].bendedNote);
+  analogWrite(6, voices[4].bendedNote);
+  analogWrite(9, voices[5].bendedNote);
+  analogWrite(22, voices[6].bendedNote);
+  analogWrite(23, voices[7].bendedNote);
 
   //-------------------------- Fill Arpeggio buffer
   fillArpNotes();
