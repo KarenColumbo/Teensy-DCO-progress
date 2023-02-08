@@ -228,6 +228,15 @@ void setup() {
   pinMode(18, OUTPUT); // Velocity 07
   pinMode(19, OUTPUT); // Velocity 08
 
+  pinMode(0, OUTPUT); // Gate 01
+  pinMode(1, OUTPUT); // Gate 02
+  pinMode(24, OUTPUT); // Gate 03
+  pinMode(25, OUTPUT); // Gate 04
+  pinMode(28, OUTPUT); // Gate 05
+  pinMode(29, OUTPUT); // Gate 06
+  pinMode(36, OUTPUT); // Gate 07
+  pinMode(37, OUTPUT); // Gate 08
+
   pinMode(33, OUTPUT); // Pitchbender
   analogWriteFrequency(33, 9155.27);
 }
@@ -252,40 +261,37 @@ void loop() {
     }
     
     // ------------------ Check for and write incoming Pitch Bend, map bend factor 
-  if (MIDI.getType() == midi::PitchBend && MIDI.getChannel() == MIDI_CHANNEL) {
-    uint16_t pitchBend = MIDI.getData1() | (MIDI.getData2() << 7);
-    benderValue = map(pitchBend, 0, 16383, PITCH_NEG, PITCH_POS);
-    analogWrite(33, benderValue);
-  }
-
-  // ----------------------- Check for and write incoming Aftertouch 
-  if (MIDI.getType() == midi::AfterTouchChannel && MIDI.getChannel() == MIDI_CHANNEL) {
-    uint8_t aftertouch = MIDI.getData1();
-    int channelPressurePWM = map(aftertouch, 0, 127, 0, 4095);
-    dac1.setChannelValue(MCP4728_CHANNEL_A, channelPressurePWM);
-  }
-
-  // ------------------------- Check for and write incoming Modulation Wheel 
-  if (MIDI.getType() == midi::ControlChange && MIDI.getData1() == 1 && MIDI.getChannel() == MIDI_CHANNEL) {
-    uint8_t modulationWheel = MIDI.getData2();
-    int modulationWheelPWM = map(modulationWheel, 0, 127, 0, 4095);
-    dac1.setChannelValue(MCP4728_CHANNEL_B, modulationWheelPWM);
-  }
-
-  // ------------------------- Check for and write incoming MIDI tempo 
-  if (MIDI.getType() == midi::ControlChange && MIDI.getChannel() == MIDI_CHANNEL) {
-    uint8_t ccNumber = MIDI.getData1();
-    uint8_t ccValue = MIDI.getData2();
-    if (ccNumber == CC_TEMPO) {
-      midiTempo = ccValue;
+    if (MIDI.getType() == midi::PitchBend && MIDI.getChannel() == MIDI_CHANNEL) {
+      uint16_t pitchBend = MIDI.getData1() | (MIDI.getData2() << 7);
+      benderValue = map(pitchBend, 0, 16383, PITCH_NEG, PITCH_POS);
+      analogWrite(33, benderValue);
     }
-    eighthNoteDuration = (60 / midiTempo) * 1000 / 2;
-    sixteenthNoteDuration = (60 / midiTempo) * 1000 / 4;
-  }
-    
-  // Check for incoming MIDI messages
-  if (MIDI.read()) {
 
+    // ----------------------- Check for and write incoming Aftertouch 
+    if (MIDI.getType() == midi::AfterTouchChannel && MIDI.getChannel() == MIDI_CHANNEL) {
+      uint8_t aftertouch = MIDI.getData1();
+      int channelPressurePWM = map(aftertouch, 0, 127, 0, 4095);
+      dac1.setChannelValue(MCP4728_CHANNEL_A, channelPressurePWM);
+    }
+
+    // ------------------------- Check for and write incoming Modulation Wheel 
+    if (MIDI.getType() == midi::ControlChange && MIDI.getData1() == 1 && MIDI.getChannel() == MIDI_CHANNEL) {
+      uint8_t modulationWheel = MIDI.getData2();
+      int modulationWheelPWM = map(modulationWheel, 0, 127, 0, 4095);
+      dac1.setChannelValue(MCP4728_CHANNEL_B, modulationWheelPWM);
+    }
+
+    // ------------------------- Check for and write incoming MIDI tempo 
+    if (MIDI.getType() == midi::ControlChange && MIDI.getChannel() == MIDI_CHANNEL) {
+      uint8_t ccNumber = MIDI.getData1();
+      uint8_t ccValue = MIDI.getData2();
+      if (ccNumber == CC_TEMPO) {
+        midiTempo = ccValue;
+      }
+      eighthNoteDuration = (60 / midiTempo) * 1000 / 2;
+      sixteenthNoteDuration = (60 / midiTempo) * 1000 / 4;
+    }
+    
     //------------------------ Read MIDI controller 70-79, write to DACs
     if (MIDI.getType() == midi::ControlChange && MIDI.getChannel() == MIDI_CHANNEL) {
       uint8_t ccNumber = MIDI.getData1();
@@ -323,32 +329,32 @@ void loop() {
         break;
       }
     }
-  }
 
-  // ---------------------------- Read and store sustain pedal status
-  if (MIDI.getType() == midi::ControlChange && MIDI.getData1() == 64 && MIDI.getChannel() == MIDI_CHANNEL) {
-    uint8_t sustainPedal = MIDI.getData2();
-    if (sustainPedal > 63) {
-       susOn = true;
-    } else {
-       susOn = false;
+    // ---------------------------- Read and store sustain pedal status
+    if (MIDI.getType() == midi::ControlChange && MIDI.getData1() == 64 && MIDI.getChannel() == MIDI_CHANNEL) {
+      uint8_t sustainPedal = MIDI.getData2();
+      if (sustainPedal > 63) {
+        susOn = true;
+      } else {
+        susOn = false;
+      }
     }
-  }
 
-  // ----------------------- Write gates and velocity outputs, bend notes 
-  for (int i = 0; i < NUM_VOICES; i++) {
-    digitalWrite(19 - i, voices[i].noteOn ? HIGH : LOW);
+    // ----------------------- Write gates and velocity outputs, bend notes 
+    for (int i = 0; i < NUM_VOICES; i++) {
+      digitalWrite(19 - i, voices[i].noteOn ? HIGH : LOW);
     
-    // Calculate pitchbender factor
-    int midiNoteVoltage = noteVolt[voices[i].midiNote];
-    double semitones = (double)benderValue / (double)16383 * 2.0;
-    double factor = pow(2.0, semitones / 12.0);
-    voices[i].bendedNote = midiNoteVoltage * factor;
-    if (voices[i].bendedNote < 0) {
-      voices[i].bendedNote = 0;
-    }
-    if (voices[i].bendedNote > 16383) {
-      voices[i].bendedNote = 16383;
+      // Calculate pitchbender factor
+      int midiNoteVoltage = noteVolt[voices[i].midiNote];
+      double semitones = (double)benderValue / (double)16383 * 2.0;
+      double factor = pow(2.0, semitones / 12.0);
+      voices[i].bendedNote = midiNoteVoltage * factor;
+      if (voices[i].bendedNote < 0) {
+        voices[i].bendedNote = 0;
+      }
+      if (voices[i].bendedNote > 16383) {
+        voices[i].bendedNote = 16383;
+      }
     }
   }
   
@@ -361,6 +367,16 @@ void loop() {
   analogWrite(9, voices[5].bendedNote);
   analogWrite(22, voices[6].bendedNote);
   analogWrite(23, voices[7].bendedNote);
+
+  // ---------------------- Write Gates
+  digitalWrite(0, voices[0].noteOn ? HIGH : LOW); // Gate 01
+  digitalWrite(1, voices[1].noteOn ? HIGH : LOW); // Gate 02
+  digitalWrite(24, voices[2].noteOn ? HIGH : LOW); // Gate 03
+  digitalWrite(25, voices[3].noteOn ? HIGH : LOW); // Gate 04
+  digitalWrite(28, voices[4].noteOn ? HIGH : LOW); // Gate 05
+  digitalWrite(29, voices[5].noteOn ? HIGH : LOW); // Gate 06
+  digitalWrite(36, voices[6].noteOn ? HIGH : LOW); // Gate 07
+  digitalWrite(37, voices[7].noteOn ? HIGH : LOW); // Gate 08
 
   //-------------------------- Fill Arpeggio buffer
   fillArpNotes();
