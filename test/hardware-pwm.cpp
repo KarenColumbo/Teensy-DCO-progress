@@ -261,15 +261,15 @@ void loop() {
   // ----------------------- Check for and write incoming Aftertouch 
   if (MIDI.getType() == midi::AfterTouchChannel && MIDI.getChannel() == MIDI_CHANNEL) {
     uint8_t aftertouch = MIDI.getData1();
-    int channelPressurePWM = map(aftertouch, 0, 127, 0, 8191 << 2);
-    analogWrite(5, channelPressurePWM);
+    int channelPressurePWM = map(aftertouch, 0, 127, 0, 4095);
+    dac1.setChannelValue(MCP4728_CHANNEL_A, channelPressurePWM);
   }
 
   // ------------------------- Check for and write incoming Modulation Wheel 
   if (MIDI.getType() == midi::ControlChange && MIDI.getData1() == 1 && MIDI.getChannel() == MIDI_CHANNEL) {
     uint8_t modulationWheel = MIDI.getData2();
-    int modulationWheelPWM = map(modulationWheel, 0, 127, 0, 8191 << 2);
-    analogWrite(6, modulationWheelPWM);
+    int modulationWheelPWM = map(modulationWheel, 0, 127, 0, 4095);
+    dac1.setChannelValue(MCP4728_CHANNEL_B, modulationWheelPWM);
   }
 
   // ------------------------- Check for and write incoming MIDI tempo 
@@ -288,8 +288,37 @@ void loop() {
     if (MIDI.getType() == midi::ControlChange && MIDI.getChannel() == MIDI_CHANNEL) {
       uint8_t ccNumber = MIDI.getData1();
       uint8_t ccValue = MIDI.getData2();
-      if (ccNumber >= 70 && ccNumber <= 79) {
-        
+      switch (ccNumber) {
+        case 70:
+        dac1.setChannelValue(MCP4728_CHANNEL_C, ccValue);
+        break;
+        case 71:
+        dac1.setChannelValue(MCP4728_CHANNEL_D, ccValue);
+        break;
+        case 72:
+        dac2.setChannelValue(MCP4728_CHANNEL_A, ccValue);
+        break;
+        case 73:
+        dac2.setChannelValue(MCP4728_CHANNEL_B, ccValue);
+        break;
+        case 74:
+        dac2.setChannelValue(MCP4728_CHANNEL_C, ccValue);
+        break;
+        case 75:
+        dac2.setChannelValue(MCP4728_CHANNEL_D, ccValue);
+        break;
+        case 76:
+        dac3.setChannelValue(MCP4728_CHANNEL_A, ccValue);
+        break;
+        case 77:
+        dac3.setChannelValue(MCP4728_CHANNEL_B, ccValue);
+        break;
+        case 78:
+        dac3.setChannelValue(MCP4728_CHANNEL_C, ccValue);
+        break;
+        case 79:
+        dac3.setChannelValue(MCP4728_CHANNEL_D, ccValue);
+        break;
       }
     }
   }
