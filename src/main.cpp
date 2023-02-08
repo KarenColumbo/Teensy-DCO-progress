@@ -89,7 +89,7 @@ struct Voice {
   uint8_t channelPressure;
   uint8_t modulationWheel;
   uint8_t prevNote;
-  uint16_t bendedNote;
+  uint16_t bentNote;
 };
 
 Voice voices[NUM_VOICES];
@@ -104,7 +104,7 @@ void initializeVoices() {
     voices[i].channelPressure = 0;
     voices[i].modulationWheel = 0;
     voices[i].prevNote = 0;
-    voices[i].bendedNote = 0x2000;
+    voices[i].bentNote = 0x2000;
   }
 }
 
@@ -342,31 +342,29 @@ void loop() {
 
     // ----------------------- Write gates and velocity outputs, bend notes 
     for (int i = 0; i < NUM_VOICES; i++) {
-      digitalWrite(19 - i, voices[i].noteOn ? HIGH : LOW);
-    
       // Calculate pitchbender factor
       int midiNoteVoltage = noteVolt[voices[i].midiNote];
       double semitones = (double)benderValue / (double)16383 * 2.0;
       double factor = pow(2.0, semitones / 12.0);
-      voices[i].bendedNote = midiNoteVoltage * factor;
-      if (voices[i].bendedNote < 0) {
-        voices[i].bendedNote = 0;
+      voices[i].bentNote = midiNoteVoltage * factor;
+      if (voices[i].bentNote < 0) {
+        voices[i].bentNote = 0;
       }
-      if (voices[i].bendedNote > 16383) {
-        voices[i].bendedNote = 16383;
+      if (voices[i].bentNote > 16383) {
+        voices[i].bentNote = 16383;
       }
     }
   }
   
-  // -------------------- Write bended note frequency voltages to Note GPIOs
-  analogWrite(2, voices[0].bendedNote);
-  analogWrite(3, voices[1].bendedNote);
-  analogWrite(4, voices[2].bendedNote);
-  analogWrite(5, voices[3].bendedNote);
-  analogWrite(6, voices[4].bendedNote);
-  analogWrite(9, voices[5].bendedNote);
-  analogWrite(22, voices[6].bendedNote);
-  analogWrite(23, voices[7].bendedNote);
+  // -------------------- Write bent note frequency voltages to Note GPIOs
+  analogWrite(2, voices[0].bentNote);
+  analogWrite(3, voices[1].bentNote);
+  analogWrite(4, voices[2].bentNote);
+  analogWrite(5, voices[3].bentNote);
+  analogWrite(6, voices[4].bentNote);
+  analogWrite(9, voices[5].bentNote);
+  analogWrite(22, voices[6].bentNote);
+  analogWrite(23, voices[7].bentNote);
 
   // ---------------------- Write Gates
   digitalWrite(0, voices[0].noteOn ? HIGH : LOW); // Gate 01
