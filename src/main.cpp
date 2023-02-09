@@ -51,8 +51,6 @@ const unsigned int noteVolt[73] = {
   8062, 8557, 9081, 9637, 10225, 10849, 11509, 12209, 12950, 13736, 14568, 15450, 16383
   };
 
-MIDI_CREATE_INSTANCE(HardwareSerial, Serial1, MIDI);
-
 // ------------------------------------- Voice buffer init 
 struct Voice {
   unsigned long noteAge;
@@ -151,6 +149,7 @@ Adafruit_MCP4728 dac1;
 Adafruit_MCP4728 dac2;
 Adafruit_MCP4728 dac3;
 Adafruit_MCP4728 dac4;
+MIDI_CREATE_INSTANCE(HardwareSerial, Serial1, MIDI);
 
 // ******************************************************************************************************
 // ************************************************************************ MAIN SETUP 
