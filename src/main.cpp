@@ -7,7 +7,7 @@
 #include <Adafruit_MCP4728.h>
 #include <SoftwareSerial.h>
 #include <Wire.h>
-#include <MCP23017.h>
+#include <Adafruit_MCP23X17.h>
 
 #define NUM_VOICES 8
 #define MIDI_CHANNEL 1
@@ -15,6 +15,19 @@
 #define PITCH_NEG -2
 #define CC_TEMPO 5
 #define A4 440
+#define DAC_ADDRESS1 0x60
+#define DAC_ADDRESS2 0x61
+#define DAC_ADDRESS3 0x62
+#define MCP_ADDRESS 0x20
+
+#define GATE_01 0
+#define GATE_02 1
+#define GATE_03 2
+#define GATE_04 3
+#define GATE_05 4
+#define GATE_06 5
+#define GATE_07 6
+#define GATE_08 7
 
 uint8_t midiTempo;
 uint8_t midiController[10];
@@ -148,7 +161,8 @@ void fillArpNotes() {
 Adafruit_MCP4728 dac1;
 Adafruit_MCP4728 dac2;
 Adafruit_MCP4728 dac3;
-Adafruit_MCP4728 dac4;
+Adafruit_MCP23X17 mcp = Adafruit_MCP23X17(MCP_ADDRESS);
+
 MIDI_CREATE_INSTANCE(HardwareSerial, Serial1, MIDI);
 
 // ******************************************************************************************************
@@ -158,20 +172,22 @@ void setup() {
     arpNotes[i] = -1;
   }
 
-  // ****************** WARNING: Connect VDD to 5 volts!!! 
+  // ****************** WARNING: Connect DACs VDD to 5 volts!!! 
+  
   // ****************** DAC Wiring:
   // Teensy 4.1 --> DAC1, DAC2
   // Pin 16 (SCL) --> SCL
   // Pin 17 (SDA) --> SDA
-  // Teensy 4.1 --> DAC3, DAC4
-  // Pin 20 (SCL1) --> SCL
-  // Pin 21 (SDA1) --> SDA
+  
+  // ****************** MCP Wiring:
+    // Pin 24 (SCL2) --> MCP SCL
+  // Pin 25 (SDA2) --> MCP SDA
   // Initialize I2C communication
-  dac1.begin(0x60);
-  dac2.begin(0x61);
-  dac3.begin(0x62);
-  dac4.begin(0x63);
+  dac1.begin(DAC_ADDRESS1);
+  dac2.begin(DAC_ADDRESS2);
+  dac3.begin(DAC_ADDRESS3);
   Wire.begin(400000);
+  mcp.begin();
   
   // Set 14 bits Hardware PWM for pitchbender and 8 note voltage outputs
   analogWriteResolution(14);
@@ -200,15 +216,6 @@ void setup() {
   pinMode(15, OUTPUT); // Velocity 06
   pinMode(18, OUTPUT); // Velocity 07
   pinMode(19, OUTPUT); // Velocity 08
-
-  pinMode(0, OUTPUT); // Gate 01
-  pinMode(1, OUTPUT); // Gate 02
-  pinMode(24, OUTPUT); // Gate 03
-  pinMode(25, OUTPUT); // Gate 04
-  pinMode(28, OUTPUT); // Gate 05
-  pinMode(29, OUTPUT); // Gate 06
-  pinMode(36, OUTPUT); // Gate 07
-  pinMode(37, OUTPUT); // Gate 08
 
   pinMode(33, OUTPUT); // Pitchbender
   analogWriteFrequency(33, 9155.27);
