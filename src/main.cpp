@@ -19,7 +19,6 @@
 #define DAC_ADDRESS2 0x61
 #define DAC_ADDRESS3 0x62
 #define MCP_ADDRESS 0x20
-
 #define GATE_01 0
 #define GATE_02 1
 #define GATE_03 2
@@ -193,42 +192,67 @@ void setup() {
   analogWriteResolution(14);
   pinMode(2, OUTPUT); // Note 01
   analogWriteFrequency(2, 9155.27);
+  digitalWrite(2, LOW);
   pinMode(3, OUTPUT); // Note 02
   analogWriteFrequency(3, 9155.27);
+  digitalWrite(3, LOW);
   pinMode(4, OUTPUT); // Note 03
   analogWriteFrequency(4, 9155.27);
+  digitalWrite(4, LOW);
   pinMode(5, OUTPUT); // Note 04
   analogWriteFrequency(5, 9155.27);
+  digitalWrite(5, LOW);
   pinMode(6, OUTPUT); // Note 05
   analogWriteFrequency(6, 9155.27);
+  digitalWrite(6, LOW);
   pinMode(9, OUTPUT); // Note 06
   analogWriteFrequency(7, 9155.27);
+  digitalWrite(9, LOW);
   pinMode(22, OUTPUT); // Note 07
   analogWriteFrequency(22, 9155.27);
+  digitalWrite(22, LOW);
   pinMode(23, OUTPUT); // Note 08
   analogWriteFrequency(23, 9155.27);
+  digitalWrite(23, LOW);
   
   pinMode(10, OUTPUT); // Velocity 01
+  digitalWrite(10, LOW);
   pinMode(11, OUTPUT); // Velocity 02
+  digitalWrite(11, LOW);
   pinMode(12, OUTPUT); // Velocity 03
+  digitalWrite(12, LOW);
   pinMode(13, OUTPUT); // Velocity 04
+  digitalWrite(13, LOW);
   pinMode(14, OUTPUT); // Velocity 05
+  digitalWrite(14, LOW);
   pinMode(15, OUTPUT); // Velocity 06
+  digitalWrite(15, LOW);
   pinMode(18, OUTPUT); // Velocity 07
+  digitalWrite(18, LOW);
   pinMode(19, OUTPUT); // Velocity 08
-
+  digitalWrite(19, LOW);
+  
   pinMode(33, OUTPUT); // Pitchbender
   analogWriteFrequency(33, 9155.27);
+  digitalWrite(33, LOW);
 
   mcp.pinMode(0, OUTPUT);
+  mcp.digitalWrite(0, LOW);
   mcp.pinMode(1, OUTPUT);
+  mcp.digitalWrite(1, LOW);
   mcp.pinMode(2, OUTPUT);
+  mcp.digitalWrite(2, LOW);
   mcp.pinMode(3, OUTPUT);
+  mcp.digitalWrite(3, LOW);
   mcp.pinMode(4, OUTPUT);
+  mcp.digitalWrite(4, LOW);
   mcp.pinMode(5, OUTPUT);
+  mcp.digitalWrite(5, LOW);
   mcp.pinMode(6, OUTPUT);
+  mcp.digitalWrite(6, LOW);
   mcp.pinMode(7, OUTPUT);
-}
+  mcp.digitalWrite(7, LOW);
+]
 
 // *****************************************************************************************************
 //******************************************** MAIN LOOP *********************************************** 
