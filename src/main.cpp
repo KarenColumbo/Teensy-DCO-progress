@@ -174,23 +174,18 @@ Adafruit_MCP23X17 mcp;
 MIDI_CREATE_INSTANCE(HardwareSerial, Serial1, MIDI);
 
 // ******************************************************************************************************
-// ************************************************************************ MAIN SETUP 
+// ******************************************************************************************* MAIN SETUP 
 void setup() {
   for (int i = 0; i < NUM_VOICES; i++) {
     arpNotes[i] = -1;
   }
 
   // ****************** WARNING: Connect DACs VDD to 5 volts!!! 
-  
   // ****************** DAC Wiring:
   // Teensy 4.1 --> DAC1, DAC2
   // Pin 16 (SCL) --> SCL
   // Pin 17 (SDA) --> SDA
   
-  // ****************** MCP Wiring:
-    // Pin 24 (SCL2) --> MCP SCL
-  // Pin 25 (SDA2) --> MCP SDA
-  // Initialize I2C communication
   dac1.begin(DAC_ADDRESS1);
   dac2.begin(DAC_ADDRESS2);
   dac3.begin(DAC_ADDRESS3);
@@ -223,7 +218,6 @@ void setup() {
   pinMode(23, OUTPUT); // Note 08
   analogWriteFrequency(23, 9155.27);
   digitalWrite(23, LOW);
-  
   pinMode(10, OUTPUT); // Velocity 01
   digitalWrite(10, LOW);
   pinMode(11, OUTPUT); // Velocity 02
@@ -240,11 +234,9 @@ void setup() {
   digitalWrite(18, LOW);
   pinMode(19, OUTPUT); // Velocity 08
   digitalWrite(19, LOW);
-  
   pinMode(33, OUTPUT); // Pitchbender
   analogWriteFrequency(33, 9155.27);
   digitalWrite(33, LOW);
-
   mcp.pinMode(0, OUTPUT);
   mcp.digitalWrite(0, LOW);
   mcp.pinMode(1, OUTPUT);
