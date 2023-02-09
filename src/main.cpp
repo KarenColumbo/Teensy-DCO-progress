@@ -161,7 +161,7 @@ void fillArpNotes() {
 Adafruit_MCP4728 dac1;
 Adafruit_MCP4728 dac2;
 Adafruit_MCP4728 dac3;
-Adafruit_MCP23X17 mcp = Adafruit_MCP23X17(MCP_ADDRESS);
+Adafruit_MCP23X17 mcp;
 
 MIDI_CREATE_INSTANCE(HardwareSerial, Serial1, MIDI);
 
@@ -186,8 +186,8 @@ void setup() {
   dac1.begin(DAC_ADDRESS1);
   dac2.begin(DAC_ADDRESS2);
   dac3.begin(DAC_ADDRESS3);
+  mcp.begin_I2C(MCP_ADDRESS);
   Wire.begin(400000);
-  mcp.begin();
   
   // Set 14 bits Hardware PWM for pitchbender and 8 note voltage outputs
   analogWriteResolution(14);
@@ -219,6 +219,15 @@ void setup() {
 
   pinMode(33, OUTPUT); // Pitchbender
   analogWriteFrequency(33, 9155.27);
+
+  mcp.pinMode(0, OUTPUT);
+  mcp.pinMode(1, OUTPUT);
+  mcp.pinMode(2, OUTPUT);
+  mcp.pinMode(3, OUTPUT);
+  mcp.pinMode(4, OUTPUT);
+  mcp.pinMode(5, OUTPUT);
+  mcp.pinMode(6, OUTPUT);
+  mcp.pinMode(7, OUTPUT);
 }
 
 // *****************************************************************************************************
@@ -349,15 +358,15 @@ void loop() {
   analogWrite(23, voices[7].bentNote);
 
   // ---------------------- Write Gates
-  digitalWrite(0, voices[0].noteOn ? HIGH : LOW); // Gate 01
-  digitalWrite(1, voices[1].noteOn ? HIGH : LOW); // Gate 02
-  digitalWrite(24, voices[2].noteOn ? HIGH : LOW); // Gate 03
-  digitalWrite(25, voices[3].noteOn ? HIGH : LOW); // Gate 04
-  digitalWrite(28, voices[4].noteOn ? HIGH : LOW); // Gate 05
-  digitalWrite(29, voices[5].noteOn ? HIGH : LOW); // Gate 06
-  digitalWrite(36, voices[6].noteOn ? HIGH : LOW); // Gate 07
-  digitalWrite(37, voices[7].noteOn ? HIGH : LOW); // Gate 08
-
+  mcp.digitalWrite(0, voices[0].noteOn ? HIGH : LOW); // Gate 01
+  mcp.digitalWrite(1, voices[1].noteOn ? HIGH : LOW); // Gate 01
+  mcp.digitalWrite(2, voices[2].noteOn ? HIGH : LOW); // Gate 01
+  mcp.digitalWrite(3, voices[3].noteOn ? HIGH : LOW); // Gate 01
+  mcp.digitalWrite(4, voices[4].noteOn ? HIGH : LOW); // Gate 01
+  mcp.digitalWrite(5, voices[5].noteOn ? HIGH : LOW); // Gate 01
+  mcp.digitalWrite(6, voices[6].noteOn ? HIGH : LOW); // Gate 01
+  mcp.digitalWrite(7, voices[7].noteOn ? HIGH : LOW); // Gate 01
+  
   //-------------------------- Fill Arpeggio buffer
   fillArpNotes();
 
