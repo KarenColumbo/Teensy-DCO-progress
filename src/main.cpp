@@ -269,7 +269,7 @@ void setup() {
   mcp.digitalWrite(6, LOW);
   mcp.pinMode(7, OUTPUT);
   mcp.digitalWrite(7, LOW);
-]
+}
 
 // *****************************************************************************************************
 //******************************************** MAIN LOOP *********************************************** 
@@ -293,22 +293,19 @@ void loop() {
     // ------------------ Check for and write incoming Pitch Bend, map bend factor 
     if (MIDI.getType() == midi::PitchBend && MIDI.getChannel() == MIDI_CHANNEL) {
       uint16_t pitchBend = MIDI.getData1() | (MIDI.getData2() << 7);
-      benderValue = map(pitchBend, 0, 16383, PITCH_NEG, PITCH_POS);
-      analogWrite(33, benderValue);
+      analogWrite(33, map(pitchBend, 0, 16383, PITCH_NEG, PITCH_POS));
     }
 
     // ----------------------- Check for and write incoming Aftertouch 
     if (MIDI.getType() == midi::AfterTouchChannel && MIDI.getChannel() == MIDI_CHANNEL) {
       uint8_t aftertouch = MIDI.getData1();
-      int channelPressurePWM = map(aftertouch, 0, 127, 0, 4095);
-      dac1.setChannelValue(MCP4728_CHANNEL_A, channelPressurePWM);
+      dac1.setChannelValue(MCP4728_CHANNEL_A, map(aftertouch, 0, 127, 0, 4095));
     }
 
     // ------------------------- Check for and write incoming Modulation Wheel 
     if (MIDI.getType() == midi::ControlChange && MIDI.getData1() == 1 && MIDI.getChannel() == MIDI_CHANNEL) {
-      uint8_t modulationWheel = MIDI.getData2();
-      int modulationWheelPWM = map(modulationWheel, 0, 127, 0, 4095);
-      dac1.setChannelValue(MCP4728_CHANNEL_B, modulationWheelPWM);
+      uint8_t modulationWheel = MIDI.getData1() | (MIDI.getData2() << 7);
+      dac1.setChannelValue(MCP4728_CHANNEL_B, map(modulationWheel, 0, 16383, 0, 4095));
     }
 
     // ------------------------- Check for and write incoming MIDI tempo 
@@ -328,34 +325,34 @@ void loop() {
       uint8_t ccValue = MIDI.getData2();
       switch (ccNumber) {
         case 70:
-        dac1.setChannelValue(MCP4728_CHANNEL_C, ccValue);
+        dac1.setChannelValue(MCP4728_CHANNEL_C, map(ccValue, 0, 127, 0, 4095));
         break;
         case 71:
-        dac1.setChannelValue(MCP4728_CHANNEL_D, ccValue);
+        dac1.setChannelValue(MCP4728_CHANNEL_D, map(ccValue, 0, 127, 0, 4095));
         break;
         case 72:
-        dac2.setChannelValue(MCP4728_CHANNEL_A, ccValue);
+        dac2.setChannelValue(MCP4728_CHANNEL_A, map(ccValue, 0, 127, 0, 4095));
         break;
         case 73:
-        dac2.setChannelValue(MCP4728_CHANNEL_B, ccValue);
+        dac2.setChannelValue(MCP4728_CHANNEL_B, map(ccValue, 0, 127, 0, 4095));
         break;
         case 74:
-        dac2.setChannelValue(MCP4728_CHANNEL_C, ccValue);
+        dac2.setChannelValue(MCP4728_CHANNEL_C, map(ccValue, 0, 127, 0, 4095));
         break;
         case 75:
-        dac2.setChannelValue(MCP4728_CHANNEL_D, ccValue);
+        dac2.setChannelValue(MCP4728_CHANNEL_D, map(ccValue, 0, 127, 0, 4095));
         break;
         case 76:
-        dac3.setChannelValue(MCP4728_CHANNEL_A, ccValue);
+        dac3.setChannelValue(MCP4728_CHANNEL_A, map(ccValue, 0, 127, 0, 4095));
         break;
         case 77:
-        dac3.setChannelValue(MCP4728_CHANNEL_B, ccValue);
+        dac3.setChannelValue(MCP4728_CHANNEL_B, map(ccValue, 0, 127, 0, 4095));
         break;
         case 78:
-        dac3.setChannelValue(MCP4728_CHANNEL_C, ccValue);
+        dac3.setChannelValue(MCP4728_CHANNEL_C, map(ccValue, 0, 127, 0, 4095));
         break;
         case 79:
-        dac3.setChannelValue(MCP4728_CHANNEL_D, ccValue);
+        dac3.setChannelValue(MCP4728_CHANNEL_D, map(ccValue, 0, 127, 0, 4095));
         break;
       }
     }
