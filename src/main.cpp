@@ -19,14 +19,6 @@
 #define DAC_ADDRESS2 0x61
 #define DAC_ADDRESS3 0x62
 #define MCP_ADDRESS 0x20
-#define GATE_01 0
-#define GATE_02 1
-#define GATE_03 2
-#define GATE_04 3
-#define GATE_05 4
-#define GATE_06 5
-#define GATE_07 6
-#define GATE_08 7
 
 uint8_t midiTempo;
 uint8_t midiController[10];
