@@ -8,6 +8,7 @@
 #include <SoftwareSerial.h>
 #include <Wire.h>
 #include <Adafruit_MCP23X17.h>
+#include "TCA9548.h"
 
 #define NUM_VOICES 8
 #define MIDI_CHANNEL 1
@@ -18,6 +19,8 @@
 #define DAC_ADDRESS1 0x60
 #define DAC_ADDRESS2 0x61
 #define DAC_ADDRESS3 0x62
+#define DAC_ADDRESS4 0x63
+#define DAC_ADDRESS5 0x64
 #define MCP_ADDRESS 0x20
 
 uint8_t midiTempo;
@@ -169,6 +172,8 @@ void fillArpNotes() {
 Adafruit_MCP4728 dac1;
 Adafruit_MCP4728 dac2;
 Adafruit_MCP4728 dac3;
+Adafruit_MCP4728 dac4;
+Adafruit_MCP4728 dac5;
 Adafruit_MCP23X17 mcp;
 
 MIDI_CREATE_INSTANCE(HardwareSerial, Serial1, MIDI);
@@ -189,6 +194,7 @@ void setup() {
   dac1.begin(DAC_ADDRESS1);
   dac2.begin(DAC_ADDRESS2);
   dac3.begin(DAC_ADDRESS3);
+  dac4.begin(DAC_ADDRESS3);
   mcp.begin_I2C(MCP_ADDRESS);
   Wire.begin(400000);
   
