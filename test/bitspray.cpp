@@ -47,3 +47,63 @@ pinMode(pin, OUTPUT);
 // For bits that are 0, Tlow should be equal to or greater than 0.4 microseconds, and Thigh equal to or less than 0.8 microseconds. 
 // For bits that are 1, Tlow should be equal to or less than 0.2 microseconds, and Thigh equal to or greater than 1.6 microseconds. 
 // The total time required to transmit the bits is then 28 microseconds.
+
+// ************ ALTERNATIVE VERSION:
+void writeVoltage(int notevolt, int pin) 
+{
+    int i, mask;
+    unsigned long start_time;
+    
+    for (i = 0; i < 14; i += 2) { 
+        mask = 1 <<(14 - i -1);
+        if(notevolt & mask) {
+            digitalWrite(pin, HIGH);
+            start_time = micros();
+            while (micros() - start_time < 200);
+            digitalWrite(pin, LOW);
+            start_time = micros();
+            while (micros() - start_time < 1600);
+            
+            mask = 1 <<(14 - i - 2 - 1);
+            if(notevolt & mask) {
+                digitalWrite(pin, HIGH);
+                start_time = micros();
+                while (micros() - start_time < 200);
+                digitalWrite(pin, LOW);
+                start_time = micros();
+                while (micros() - start_time < 1600);
+            } else {
+                digitalWrite(pin, HIGH);
+                start_time = micros();
+                while (micros() - start_time < 400);
+                digitalWrite(pin, LOW);
+                start_time = micros();
+                while (micros() - start_time < 800);
+            }
+        } else {
+            digitalWrite(pin, HIGH);
+            start_time = micros();
+            while (micros() - start_time < 400);
+            digitalWrite(pin, LOW);
+            start_time = micros();
+            while (micros() - start_time < 800);
+            
+            mask = 1 <<(14 - i - 2 - 1);
+            if(notevolt & mask) {
+                digitalWrite(pin, HIGH);
+                start_time = micros();
+                while (micros() - start_time < 200);
+                digitalWrite(pin, LOW);
+                start_time = micros();
+                while (micros() - start_time < 1600);
+            } else {
+                digitalWrite(pin, HIGH);
+                start_time = micros();
+                while (micros() - start_time < 400);
+                digitalWrite(pin, LOW);
+                start_time = micros();
+                while (micros() - start_time < 800);
+            }
+        }
+    }
+}

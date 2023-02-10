@@ -168,36 +168,63 @@ void fillArpNotes() {
 // -------------------- Experimental bit spray routine
 void writeVoltage(int notevolt, int pin) 
 {
-    // bit spray technique involves setting the pin high and low for exact amount of microseconds 
-    // in order to output the respective bit
+    int i, mask;
+    unsigned long start_time;
     
-    // notes on timing: 
-    // for 0: Tlow >= 0.4;   Thigh <= 0.8
-    // for 1: Tlow <= 0.2;   Thigh >= 1.6
-    
-    // for a 14-bit word, 
-    // we will have 14 pairs of tlow and thigh that we need to set according to the bit
-    
-    // we will create the pairs in a loop, setting the output pin accordingly
-    for (int i = 0; i < 14; i++) { 
-        int mask = 1 <<(14 - i -1); // used to access respective bit of notevolt
-        
-        if(notevolt & mask) 
-        {
-            digitalWrite(pin, HIGH); //Tlow <= 0.2
-            delayMicroseconds(200);
-            digitalWrite(pin, LOW); //Thigh >= 1.6
-            delayMicroseconds(1600);
-        }
-        else 
-        {
-            digitalWrite(pin, HIGH); //Tlow >= 0.4
-            delayMicroseconds(400);
-            digitalWrite(pin, LOW); //Thigh <= 0.8
-            delayMicroseconds(800);
+    for (i = 0; i < 14; i += 2) { 
+        mask = 1 <<(14 - i -1);
+        if(notevolt & mask) {
+            digitalWrite(pin, HIGH);
+            start_time = micros();
+            while (micros() - start_time < 200);
+            digitalWrite(pin, LOW);
+            start_time = micros();
+            while (micros() - start_time < 1600);
+            
+            mask = 1 <<(14 - i - 2 - 1);
+            if(notevolt & mask) {
+                digitalWrite(pin, HIGH);
+                start_time = micros();
+                while (micros() - start_time < 200);
+                digitalWrite(pin, LOW);
+                start_time = micros();
+                while (micros() - start_time < 1600);
+            } else {
+                digitalWrite(pin, HIGH);
+                start_time = micros();
+                while (micros() - start_time < 400);
+                digitalWrite(pin, LOW);
+                start_time = micros();
+                while (micros() - start_time < 800);
+            }
+        } else {
+            digitalWrite(pin, HIGH);
+            start_time = micros();
+            while (micros() - start_time < 400);
+            digitalWrite(pin, LOW);
+            start_time = micros();
+            while (micros() - start_time < 800);
+            
+            mask = 1 <<(14 - i - 2 - 1);
+            if(notevolt & mask) {
+                digitalWrite(pin, HIGH);
+                start_time = micros();
+                while (micros() - start_time < 200);
+                digitalWrite(pin, LOW);
+                start_time = micros();
+                while (micros() - start_time < 1600);
+            } else {
+                digitalWrite(pin, HIGH);
+                start_time = micros();
+                while (micros() - start_time < 400);
+                digitalWrite(pin, LOW);
+                start_time = micros();
+                while (micros() - start_time < 800);
+            }
         }
     }
 }
+
 
 // ------------------------------------ Initialize multiplexer, 4728s and 23017
 TCA9548 tca = TCA9548(0x70);
