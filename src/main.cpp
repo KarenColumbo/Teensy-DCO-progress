@@ -446,23 +446,23 @@ void loop() {
     }
   
   // -------------------- Write bent note frequency voltages to Note GPIOs
-  //analogWrite(2, voices[0].bentNote);
-  //analogWrite(3, voices[1].bentNote);
-  //analogWrite(4, voices[2].bentNote);
-  //analogWrite(5, voices[3].bentNote);
-  //analogWrite(6, voices[4].bentNote);
-  //analogWrite(9, voices[5].bentNote);
-  //analogWrite(22, voices[6].bentNote);
-  //analogWrite(23, voices[7].bentNote);
+  analogWrite(2, voices[0].bentNote);
+  analogWrite(3, voices[1].bentNote);
+  analogWrite(4, voices[2].bentNote);
+  analogWrite(5, voices[3].bentNote);
+  analogWrite(6, voices[4].bentNote);
+  analogWrite(9, voices[5].bentNote);
+  analogWrite(22, voices[6].bentNote);
+  analogWrite(23, voices[7].bentNote);
 
-  writeVoltage(voices[0].bentNote, 2);
-  writeVoltage(voices[1].bentNote, 3);
-  writeVoltage(voices[2].bentNote, 4);
-  writeVoltage(voices[3].bentNote, 5);
-  writeVoltage(voices[4].bentNote, 6);
-  writeVoltage(voices[5].bentNote, 9);
-  writeVoltage(voices[6].bentNote, 22);
-  writeVoltage(voices[7].bentNote, 23);
+  //writeVoltage(voices[0].bentNote, 2);
+  //writeVoltage(voices[1].bentNote, 3);
+  //writeVoltage(voices[2].bentNote, 4);
+  //writeVoltage(voices[3].bentNote, 5);
+  //writeVoltage(voices[4].bentNote, 6);
+  //writeVoltage(voices[5].bentNote, 9);
+  //writeVoltage(voices[6].bentNote, 22);
+  //writeVoltage(voices[7].bentNote, 23);
 
   // ---------------------- Write Gates
   tcaselect(4);
