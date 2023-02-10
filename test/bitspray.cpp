@@ -53,7 +53,7 @@ void writeVoltage(int notevolt, int pin)
 {
     int i, mask;
     unsigned long start_time;
-    
+    nointerrupts()
     for (i = 0; i < 14; i += 2) { 
         mask = 1 <<(14 - i -1);
         if(notevolt & mask) {
@@ -105,5 +105,6 @@ void writeVoltage(int notevolt, int pin)
                 while (micros() - start_time < 800);
             }
         }
+    interrupts()
     }
 }
