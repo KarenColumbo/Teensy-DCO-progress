@@ -165,6 +165,40 @@ void fillArpNotes() {
   }
 }
 
+// -------------------- Experimental bit spray routine
+void writeVoltage(int notevolt, int pin) 
+{
+    // bit spray technique involves setting the pin high and low for exact amount of microseconds 
+    // in order to output the respective bit
+    
+    // notes on timing: 
+    // for 0: Tlow >= 0.4;   Thigh <= 0.8
+    // for 1: Tlow <= 0.2;   Thigh >= 1.6
+    
+    // for a 14-bit word, 
+    // we will have 14 pairs of tlow and thigh that we need to set according to the bit
+    
+    // we will create the pairs in a loop, setting the output pin accordingly
+    for (int i = 0; i < 14; i++) { 
+        int mask = 1 <<(14 - i -1); // used to access respective bit of notevolt
+        
+        if(notevolt & mask) 
+        {
+            digitalWrite(pin, HIGH); //Tlow <= 0.2
+            delayMicroseconds(200);
+            digitalWrite(pin, LOW); //Thigh >= 1.6
+            delayMicroseconds(1600);
+        }
+        else 
+        {
+            digitalWrite(pin, HIGH); //Tlow >= 0.4
+            delayMicroseconds(400);
+            digitalWrite(pin, LOW); //Thigh <= 0.8
+            delayMicroseconds(800);
+        }
+    }
+}
+
 // ------------------------------------ Initialize multiplexer, 4728s and 23017
 TCA9548 tca = TCA9548(0x70);
 Adafruit_MCP4728 dac_0, dac_1, dac_2, dac_3;
@@ -385,14 +419,23 @@ void loop() {
     }
   
   // -------------------- Write bent note frequency voltages to Note GPIOs
-  analogWrite(2, voices[0].bentNote);
-  analogWrite(3, voices[1].bentNote);
-  analogWrite(4, voices[2].bentNote);
-  analogWrite(5, voices[3].bentNote);
-  analogWrite(6, voices[4].bentNote);
-  analogWrite(9, voices[5].bentNote);
-  analogWrite(22, voices[6].bentNote);
-  analogWrite(23, voices[7].bentNote);
+  //analogWrite(2, voices[0].bentNote);
+  //analogWrite(3, voices[1].bentNote);
+  //analogWrite(4, voices[2].bentNote);
+  //analogWrite(5, voices[3].bentNote);
+  //analogWrite(6, voices[4].bentNote);
+  //analogWrite(9, voices[5].bentNote);
+  //analogWrite(22, voices[6].bentNote);
+  //analogWrite(23, voices[7].bentNote);
+
+  writeVoltage(voices[0].bentNote, 2);
+  writeVoltage(voices[1].bentNote, 3);
+  writeVoltage(voices[2].bentNote, 4);
+  writeVoltage(voices[3].bentNote, 5);
+  writeVoltage(voices[4].bentNote, 6);
+  writeVoltage(voices[5].bentNote, 9);
+  writeVoltage(voices[6].bentNote, 22);
+  writeVoltage(voices[7].bentNote, 23);
 
   // ---------------------- Write Gates
   tcaselect(4);
