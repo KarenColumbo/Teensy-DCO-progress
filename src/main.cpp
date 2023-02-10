@@ -25,7 +25,9 @@ int arpIndex = 0;
 int numArpNotes = 0;
 int arpNotes[NUM_VOICES];
 uint16_t eighthNoteDuration = 0;
-uint16_t sixteenthNoteDuration = 0; 
+uint16_t sixteenthNoteDuration = 0;
+const int notePin[8] = {2, 3, 4, 5, 6, 9, 22, 23};
+const int veloPin[8] = {10, 11, 12, 13, 14, 15, 18, 19};
 
 // --------------------------------- 12 bit Velocity Voltages - linear 
 const float veloVoltLin[128]={
@@ -206,46 +208,14 @@ void setup() {
   
   // Set 14 bits Hardware PWM for pitchbender and 8 note voltage outputs
   analogWriteResolution(14);
-  pinMode(2, OUTPUT); // Note 01
-  analogWriteFrequency(2, 9155.27);
-  digitalWrite(2, LOW);
-  pinMode(3, OUTPUT); // Note 02
-  analogWriteFrequency(3, 9155.27);
-  digitalWrite(3, LOW);
-  pinMode(4, OUTPUT); // Note 03
-  analogWriteFrequency(4, 9155.27);
-  digitalWrite(4, LOW);
-  pinMode(5, OUTPUT); // Note 04
-  analogWriteFrequency(5, 9155.27);
-  digitalWrite(5, LOW);
-  pinMode(6, OUTPUT); // Note 05
-  analogWriteFrequency(6, 9155.27);
-  digitalWrite(6, LOW);
-  pinMode(9, OUTPUT); // Note 06
-  analogWriteFrequency(7, 9155.27);
-  digitalWrite(9, LOW);
-  pinMode(22, OUTPUT); // Note 07
-  analogWriteFrequency(22, 9155.27);
-  digitalWrite(22, LOW);
-  pinMode(23, OUTPUT); // Note 08
-  analogWriteFrequency(23, 9155.27);
-  digitalWrite(23, LOW);
-  pinMode(10, OUTPUT); // Velocity 01
-  digitalWrite(10, LOW);
-  pinMode(11, OUTPUT); // Velocity 02
-  digitalWrite(11, LOW);
-  pinMode(12, OUTPUT); // Velocity 03
-  digitalWrite(12, LOW);
-  pinMode(13, OUTPUT); // Velocity 04
-  digitalWrite(13, LOW);
-  pinMode(14, OUTPUT); // Velocity 05
-  digitalWrite(14, LOW);
-  pinMode(15, OUTPUT); // Velocity 06
-  digitalWrite(15, LOW);
-  pinMode(18, OUTPUT); // Velocity 07
-  digitalWrite(18, LOW);
-  pinMode(19, OUTPUT); // Velocity 08
-  digitalWrite(19, LOW);
+  for (int i = 0; i < NUM_VOICES; i++) {
+    pinMode(notePin[i], OUTPUT); // Note 01
+    analogWriteFrequency(notePin[i], 9155.27);
+    digitalWrite(notePin[i], LOW);
+    pinMode(veloPin[i], OUTPUT); // Velocity 01
+    digitalWrite(veloPin[i], LOW);
+    pinMode(veloPin[i], OUTPUT); // Velocity 02
+  }
   pinMode(33, OUTPUT); // Pitchbender
   analogWriteFrequency(33, 9155.27);
   digitalWrite(33, LOW);
@@ -369,6 +339,7 @@ void loop() {
   // ---------------------------------- Write -------------------------------------------------------------------- 
 
     // ----------------------- Write gates and velocity outputs, bend notes 
+    tcaselect(4);
     for (int i = 0; i < NUM_VOICES; i++) {
       // Calculate pitchbender factor
       int midiNoteVoltage = noteVolt[voices[i].midiNote];
@@ -382,39 +353,11 @@ void loop() {
       if (voices[i].bentNote > 16383) {
         voices[i].bentNote = 16383;
       }
+      analogWrite(notePin[i], voices[i].bentNote);
+      analogWrite(veloPin[i],veloVoltLin[voices[i].velocity]);
+      mcp.digitalWrite(i, voices[i].noteOn ? HIGH : LOW);
     }
-  
-  // -------------------- Write bent note frequency voltages to Note GPIOs
-  analogWrite(2, voices[0].bentNote);
-  analogWrite(3, voices[1].bentNote);
-  analogWrite(4, voices[2].bentNote);
-  analogWrite(5, voices[3].bentNote);
-  analogWrite(6, voices[4].bentNote);
-  analogWrite(9, voices[5].bentNote);
-  analogWrite(22, voices[6].bentNote);
-  analogWrite(23, voices[7].bentNote);
 
-  // ---------------------- Write Gates
-  tcaselect(4);
-	mcp.digitalWrite(0, voices[0].noteOn ? HIGH : LOW); // Gate 01
-  mcp.digitalWrite(1, voices[1].noteOn ? HIGH : LOW); // Gate 01
-  mcp.digitalWrite(2, voices[2].noteOn ? HIGH : LOW); // Gate 01
-  mcp.digitalWrite(3, voices[3].noteOn ? HIGH : LOW); // Gate 01
-  mcp.digitalWrite(4, voices[4].noteOn ? HIGH : LOW); // Gate 01
-  mcp.digitalWrite(5, voices[5].noteOn ? HIGH : LOW); // Gate 01
-  mcp.digitalWrite(6, voices[6].noteOn ? HIGH : LOW); // Gate 01
-  mcp.digitalWrite(7, voices[7].noteOn ? HIGH : LOW); // Gate 01
-  
   //-------------------------- Fill Arpeggio buffer
   fillArpNotes();
-
-  // --------------------- Write velocity voltages to velocity GPIOs
-  analogWrite(10,veloVoltLin[voices[0].velocity]);
-  analogWrite(11,veloVoltLin[voices[1].velocity]);
-  analogWrite(12,veloVoltLin[voices[2].velocity]);
-  analogWrite(13,veloVoltLin[voices[3].velocity]);
-  analogWrite(14,veloVoltLin[voices[4].velocity]);
-  analogWrite(15,veloVoltLin[voices[5].velocity]);
-  analogWrite(18,veloVoltLin[voices[6].velocity]);
-  analogWrite(19,veloVoltLin[voices[7].velocity]);
 }
