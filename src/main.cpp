@@ -375,7 +375,7 @@ void loop() {
       double semitones = (double)benderValue / (double)16383 * 2.0;
       double factor = pow(2.0, semitones / 12.0);
       voices[i].bentNote = midiNoteVoltage * factor;
-      voices[i].bentNoteFreq = midiNoteFrquency[i] * factor;
+      voices[i].bentNoteFreq = midiNoteFrequency[i] * factor;
       if (voices[i].bentNote < 0) {
         voices[i].bentNote = 0;
       }
