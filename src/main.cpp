@@ -12,7 +12,7 @@
 
 #define NUM_VOICES 8
 #define MIDI_CHANNEL 1
-#define PITCH_POS 2 // Pitchbend range in +/- benderValue
+#define PITCH_POS 2
 #define PITCH_NEG -2
 #define CC_TEMPO 5
 #define A4 440
@@ -393,15 +393,6 @@ void loop() {
   analogWrite(9, voices[5].bentNote);
   analogWrite(22, voices[6].bentNote);
   analogWrite(23, voices[7].bentNote);
-
-  //writeVoltage(voices[0].bentNote, 2);
-  //writeVoltage(voices[1].bentNote, 3);
-  //writeVoltage(voices[2].bentNote, 4);
-  //writeVoltage(voices[3].bentNote, 5);
-  //writeVoltage(voices[4].bentNote, 6);
-  //writeVoltage(voices[5].bentNote, 9);
-  //writeVoltage(voices[6].bentNote, 22);
-  //writeVoltage(voices[7].bentNote, 23);
 
   // ---------------------- Write Gates
   tcaselect(4);
