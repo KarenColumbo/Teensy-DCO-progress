@@ -1,6 +1,10 @@
 //*********************** https://www.pjrc.com/teensy/td_pulse.html ********************************
 // Language C/C++
 // Board Teensy 4.1
+#include <Audio.h>
+#include <SPI.h>
+#include <SD.h>
+#include <SerialFlash.h>
 #include <stdint.h>
 #include <Arduino.h>
 #include <MIDI.h>
@@ -16,6 +20,9 @@
 #define PITCH_NEG -2
 #define CC_TEMPO 5
 #define A4 440
+#define SAMPLES_PER_BUFFER 64 // Sample size
+#define AUDIO_BLOCK_SIZE 64 // Audio buffer size
+	
 
 uint8_t midiTempo;
 uint8_t midiController[10];
@@ -26,6 +33,10 @@ int numArpNotes = 0;
 int arpNotes[NUM_VOICES];
 uint16_t eighthNoteDuration = 0;
 uint16_t sixteenthNoteDuration = 0; 
+
+AudioSynthWaveformSaw saw;
+AudioConnection patch(saw,0);
+AudioOutputI2S i2s1;
 
 // --------------------------------- 12 bit Velocity Voltages - linear 
 const float veloVoltLin[128]={
@@ -255,6 +266,16 @@ void setup() {
   	mcp.pinMode(i, OUTPUT);
   	mcp.digitalWrite(i, LOW);	
 	}
+
+	// -------------------- Setup Saw GPIOs
+	#define gpio1 A17
+	#define gpio2 A18
+	#define gpio3 A19
+	#define gpio4 A20
+	#define gpio5 A5
+	#define gpio6 A6
+	#define gpio7 A7
+	#define gpio8 A16
 }
 
 // *****************************************************************************************************
