@@ -165,67 +165,6 @@ void fillArpNotes() {
   }
 }
 
-// -------------------- Experimental bit spray routine
-void writeVoltage(int notevolt, int pin) 
-{
-    int i, mask;
-    unsigned long start_time;
-    
-    for (i = 0; i < 14; i += 2) { 
-        mask = 1 <<(14 - i -1);
-        if(notevolt & mask) {
-            digitalWrite(pin, HIGH);
-            start_time = micros();
-            while (micros() - start_time < 200);
-            digitalWrite(pin, LOW);
-            start_time = micros();
-            while (micros() - start_time < 1600);
-            
-            mask = 1 <<(14 - i - 2 - 1);
-            if(notevolt & mask) {
-                digitalWrite(pin, HIGH);
-                start_time = micros();
-                while (micros() - start_time < 200);
-                digitalWrite(pin, LOW);
-                start_time = micros();
-                while (micros() - start_time < 1600);
-            } else {
-                digitalWrite(pin, HIGH);
-                start_time = micros();
-                while (micros() - start_time < 400);
-                digitalWrite(pin, LOW);
-                start_time = micros();
-                while (micros() - start_time < 800);
-            }
-        } else {
-            digitalWrite(pin, HIGH);
-            start_time = micros();
-            while (micros() - start_time < 400);
-            digitalWrite(pin, LOW);
-            start_time = micros();
-            while (micros() - start_time < 800);
-            
-            mask = 1 <<(14 - i - 2 - 1);
-            if(notevolt & mask) {
-                digitalWrite(pin, HIGH);
-                start_time = micros();
-                while (micros() - start_time < 200);
-                digitalWrite(pin, LOW);
-                start_time = micros();
-                while (micros() - start_time < 1600);
-            } else {
-                digitalWrite(pin, HIGH);
-                start_time = micros();
-                while (micros() - start_time < 400);
-                digitalWrite(pin, LOW);
-                start_time = micros();
-                while (micros() - start_time < 800);
-            }
-        }
-    }
-}
-
-
 // ------------------------------------ Initialize multiplexer, 4728s and 23017
 TCA9548 tca = TCA9548(0x70);
 Adafruit_MCP4728 dac_0, dac_1, dac_2, dac_3;
