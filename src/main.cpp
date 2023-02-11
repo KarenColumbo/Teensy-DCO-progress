@@ -45,8 +45,8 @@ const int notePin[8] = {2, 3, 4, 5, 6, 9, 22, 23};
 const int veloPin[8] = {10, 11, 12, 13, 14, 15, 18, 19};
 const int SAVE_SWITCH_PIN = 24;
 const int LOAD_SWITCH_PIN = 25;
-// I2C pins: 16, 17
-// Pitchbender pin: 33
+// I2C pins: ----------------> 16, 17
+// Pitchbender pin: ---------> 33
 
 // --------------------------------- 12 bit Velocity Voltages - linear 
 const float veloVoltLin[128]={
