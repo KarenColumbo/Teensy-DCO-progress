@@ -167,24 +167,24 @@ void noteOff(uint8_t midiNote) {
 }
 
 //-------------------------------- Fill Arpeggio buffer from oldest to youngest note
-void fillArpNotes() {
-  arpIndex = 0;
-  for (int i = 0; i < NUM_VOICES; i++) {
-    if (voices[i].noteOn) {
-      arpNotes[arpIndex++] = voices[i].midiNote;
-    }
-  }
-  numArpNotes = arpIndex;
-  for (int i = 0; i < NUM_VOICES; i++) {
-    for (int j = 0; j < arpIndex - 1; j++) {
-      if (voices[i].noteAge < voices[j].noteAge) {
-        int temp = arpNotes[j];
-        arpNotes[j] = arpNotes[j + 1];
-        arpNotes[j + 1] = temp;
-      }
-    }
-  }
-}
+//void fillArpNotes() {
+//  arpIndex = 0;
+//  for (int i = 0; i < NUM_VOICES; i++) {
+//    if (voices[i].noteOn) {
+//      arpNotes[arpIndex++] = voices[i].midiNote;
+//    }
+//  }
+//  numArpNotes = arpIndex;
+//  for (int i = 0; i < NUM_VOICES; i++) {
+//    for (int j = 0; j < arpIndex - 1; j++) {
+//      if (voices[i].noteAge < voices[j].noteAge) {
+//        int temp = arpNotes[j];
+//        arpNotes[j] = arpNotes[j + 1];
+//        arpNotes[j + 1] = temp;
+//      }
+//    }
+//  }
+//}
 
 // ------------------------------------ Initialize multiplexer, 4728s and 23017
 TCA9548 tca = TCA9548(0x70);
@@ -204,9 +204,9 @@ void tcaselect(uint8_t i) {
 // ******************************************************************************************************
 // ******************************************************************************************* MAIN SETUP 
 void setup() {
-  for (int i = 0; i < NUM_VOICES; i++) {
-    arpNotes[i] = -1;
-  }
+//  for (int i = 0; i < NUM_VOICES; i++) {
+//    arpNotes[i] = -1;
+//  }
 
   pinMode(SAVE_SWITCH_PIN, INPUT_PULLUP);
   pinMode(LOAD_SWITCH_PIN, INPUT_PULLUP);
@@ -299,8 +299,8 @@ void loop() {
       if (ccNumber == CC_TEMPO) {
         midiTempo = ccValue;
       }
-      eighthNoteDuration = (60 / midiTempo) * 1000 / 2;
-      sixteenthNoteDuration = (60 / midiTempo) * 1000 / 4;
+    //  eighthNoteDuration = (60 / midiTempo) * 1000 / 2;
+    //  sixteenthNoteDuration = (60 / midiTempo) * 1000 / 4;
     }
     
     //------------------------ Read MIDI controller 70-79, write to DACs
@@ -457,5 +457,5 @@ void loop() {
     }
 
   //-------------------------- Fill Arpeggio buffer
-  fillArpNotes();
+  //fillArpNotes();
 }
