@@ -211,6 +211,10 @@ void setup() {
 //    arpNotes[i] = -1;
 //  }
 
+// Debugging
+Serial.begin(9600);  // start serial communication at 9600 baud
+
+
   //pinMode(SAVE_SWITCH_PIN, INPUT_PULLUP);
   //pinMode(LOAD_SWITCH_PIN, INPUT_PULLUP);
   //saveSwitch.attach(SAVE_SWITCH_PIN);
@@ -271,9 +275,21 @@ void loop() {
       uint8_t velocity = MIDI.getData2();
       if (velocity > 0) {
         noteOn(midiNote, velocity);
+
+        // Debug
+        Serial.print("Note on: ");
+        Serial.print(midiNote);
+        Serial.print("  ->  ");
+        Serial.println(velocity);
+        
+
       } 
       if (velocity == 0 && susOn == false) {
         noteOff(midiNote);
+        // Debug
+        Serial.print("Note off: ");
+        Serial.println(midiNote);
+        
       }
     }
     
@@ -281,6 +297,12 @@ void loop() {
     if (MIDI.getType() == midi::PitchBend && MIDI.getChannel() == MIDI_CHANNEL) {
       uint16_t pitchBend = MIDI.getData1() | (MIDI.getData2() << 7);
       analogWrite(33, map(pitchBend, 0, 16383, PITCH_NEG, PITCH_POS));
+      // Debug
+        Serial.print("Pitchbend: ");
+        Serial.println(pitchBend);
+
+
+
     }
 
     // ----------------------- Check for and write incoming Aftertouch 
@@ -288,6 +310,10 @@ void loop() {
       uint8_t aftertouch = MIDI.getData1();
       tcaselect(0);
 			dac_0.setChannelValue(MCP4728_CHANNEL_A, map(aftertouch, 0, 127, 0, 4095));
+
+      // Debug
+        Serial.print("Aftertouch: ");
+        Serial.println(aftertouch);
     }
 
     // ------------------------- Check for and write incoming Modulation Wheel 
@@ -295,6 +321,10 @@ void loop() {
       uint8_t modulationWheel = MIDI.getData1() | (MIDI.getData2() << 7);
 			tcaselect(0);
       dac_0.setChannelValue(MCP4728_CHANNEL_B, map(modulationWheel, 0, 16383, 0, 4095));
+
+      // Debug
+        Serial.print("Modwheel: ");
+        Serial.println(modulationWheel);
     }
 
     // ------------------------- Check for and write incoming MIDI tempo 
@@ -469,6 +499,13 @@ void loop() {
     // ---------------------------- Read and store sustain pedal status
     if (MIDI.getType() == midi::ControlChange && MIDI.getData1() == 64 && MIDI.getChannel() == MIDI_CHANNEL) {
       uint8_t sustainPedal = MIDI.getData2();
+
+
+      // Debug
+        Serial.print("Pedal: ");
+        Serial.println(sustainPedal);
+
+
       if (sustainPedal > 63) {
         susOn = true;
       } else {
