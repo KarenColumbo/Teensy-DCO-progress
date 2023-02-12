@@ -276,7 +276,7 @@ void loop() {
       if (velocity > 0) {
         noteOn(midiNote, velocity);
 
-        // Debug
+        // Debug***********************************************************************************
         Serial.print("Note on: ");
         Serial.print(midiNote);
         Serial.print("  ->  ");
@@ -286,7 +286,8 @@ void loop() {
       } 
       if (velocity == 0 && susOn == false) {
         noteOff(midiNote);
-        // Debug
+        
+        // Debug ********************************************************************************
         Serial.print("Note off: ");
         Serial.println(midiNote);
         
@@ -297,7 +298,8 @@ void loop() {
     if (MIDI.getType() == midi::PitchBend && MIDI.getChannel() == MIDI_CHANNEL) {
       uint16_t pitchBend = MIDI.getData1() | (MIDI.getData2() << 7);
       analogWrite(33, map(pitchBend, 0, 16383, PITCH_NEG, PITCH_POS));
-      // Debug
+      
+      // Debug*************************************************************************************
         Serial.print("Pitchbend: ");
         Serial.println(pitchBend);
 
@@ -311,7 +313,7 @@ void loop() {
       tcaselect(0);
 			dac_0.setChannelValue(MCP4728_CHANNEL_A, map(aftertouch, 0, 127, 0, 4095));
 
-      // Debug
+      // Debug******************************************************************************
         Serial.print("Aftertouch: ");
         Serial.println(aftertouch);
     }
@@ -322,7 +324,7 @@ void loop() {
 			tcaselect(0);
       dac_0.setChannelValue(MCP4728_CHANNEL_B, map(modulationWheel, 0, 16383, 0, 4095));
 
-      // Debug
+      // Debug**********************************************************************************
         Serial.print("Modwheel: ");
         Serial.println(modulationWheel);
     }
@@ -501,7 +503,7 @@ void loop() {
       uint8_t sustainPedal = MIDI.getData2();
 
 
-      // Debug
+      // Debug*************************************************************************
         Serial.print("Pedal: ");
         Serial.println(sustainPedal);
 
