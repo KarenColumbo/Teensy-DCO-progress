@@ -44,6 +44,7 @@ int CCValue[14] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 const int controlPin[8] = {2, 3, 4, 5, 6, 9, 22, 23};
 const int veloPin[8] = {10, 11, 12, 13, 14, 15, 18, 19};
 const int notePin[8] = {7, 8, 24, 25, 28, 29, 36, 37};
+const char dacChannel[8] = {MCP4728_CHANNEL_A, MCP4728_CHANNEL_B, MCP4728_CHANNEL_C, MCP4728_CHANNEL_D, MCP4728_CHANNEL_A, MCP4728_CHANNEL_B, MCP4728_CHANNEL_C, MCP4728_CHANNEL_D};
 //const int SAVE_SWITCH_PIN = 24;
 //const int LOAD_SWITCH_PIN = 25;
 // I2C pins: ----------------> 16, 17
@@ -558,16 +559,21 @@ void loop() {
       voices[i].lastTime = currentTime;
       voices[i].clockState = !voices[i].clockState;
     }
+
+    // Calculate control voltage
+    double controlVoltage = map(voices[i].bentNote, 0, 16384, 0, 3.3);
+    
+    // Write clock & control voltage
     tcaselect(6);
     mcp_2.digitalWrite(i, voices[i].clockState ? HIGH : LOW);
-
-    // Calculate the control voltage
-    double controlVoltage = map(voices[i].bentNote, 0, 16384, 0, 3.3);
     analogWrite(controlPin[i], controlVoltage);
+    
+    // Write note freq
     analogWrite(notePin[i], voices[i].bentNote);
 
     // Write the velocity voltage
     analogWrite(veloPin[i],veloVoltLin[voices[i].velocity]);
+    // Write gate
     mcp_1.digitalWrite(i, voices[i].noteOn ? HIGH : LOW);
   }
 
