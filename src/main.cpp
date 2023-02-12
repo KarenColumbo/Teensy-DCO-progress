@@ -537,38 +537,38 @@ void loop() {
   //    mcp_1.digitalWrite(i, voices[i].noteOn ? HIGH : LOW);
   //  }
   for (int i = 0; i < NUM_VOICES; i++) {
-  // Calculate pitchbender factor
-  int midiNoteVoltage = noteVolt[voices[i].midiNote];
-  double semitones = (double)benderValue / (double)16383 * 2.0;
-  double factor = pow(2.0, semitones / 12.0);
-  voices[i].bentNote = midiNoteVoltage * factor;
-  voices[i].bentNoteFreq = midiNoteFrequency[i] * factor;
-  if (voices[i].bentNote < 0) {
-    voices[i].bentNote = 0;
-  }
-  if (voices[i].bentNote > 16383) {
-    voices[i].bentNote = 16383;
-  }
+    // Calculate pitchbender factor
+    int midiNoteVoltage = noteVolt[voices[i].midiNote];
+    double semitones = (double)benderValue / (double)16383 * 2.0;
+    double factor = pow(2.0, semitones / 12.0);
+    voices[i].bentNote = midiNoteVoltage * factor;
+    voices[i].bentNoteFreq = midiNoteFrequency[i] * factor;
+    if (voices[i].bentNote < 0) {
+      voices[i].bentNote = 0;
+    }
+    if (voices[i].bentNote > 16383) {
+      voices[i].bentNote = 16383;
+    }
 
-  // Generate a square wave with the desired frequency
-  double period = 1.0 / voices[i].bentNoteFreq;
-  double halfPeriod = period / 2.0;
-  unsigned long currentTime = millis();
-  if (currentTime - voices[i].lastTime > halfPeriod) {
-    voices[i].lastTime = currentTime;
-    voices[i].clockState = !voices[i].clockState;
-  }
-  tcaselect(6);
-  mcp_2.digitalWrite(i, voices[i].clockState ? HIGH : LOW);
+    // Generate a square wave with the desired frequency
+    double period = 1.0 / voices[i].bentNoteFreq;
+    double halfPeriod = period / 2.0;
+    unsigned long currentTime = millis();
+    if (currentTime - voices[i].lastTime > halfPeriod) {
+      voices[i].lastTime = currentTime;
+      voices[i].clockState = !voices[i].clockState;
+    }
+    tcaselect(6);
+    mcp_2.digitalWrite(i, voices[i].clockState ? HIGH : LOW);
 
-  // Calculate the control voltage
-  double controlVoltage = map(voices[i].bentNote, 0, 16384, 0, 3.3);
-  analogWrite(controlPin[i], controlVoltage);
-  analogWrite(notePin[i], voices[i].bentNote);
+    // Calculate the control voltage
+    double controlVoltage = map(voices[i].bentNote, 0, 16384, 0, 3.3);
+    analogWrite(controlPin[i], controlVoltage);
+    analogWrite(notePin[i], voices[i].bentNote);
 
-  // Write the velocity voltage
-  analogWrite(veloPin[i],veloVoltLin[voices[i].velocity]);
-  mcp_1.digitalWrite(i, voices[i].noteOn ? HIGH : LOW);
+    // Write the velocity voltage
+    analogWrite(veloPin[i],veloVoltLin[voices[i].velocity]);
+    mcp_1.digitalWrite(i, voices[i].noteOn ? HIGH : LOW);
   }
 
   //-------------------------- Fill Arpeggio buffer
