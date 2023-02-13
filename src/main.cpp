@@ -42,9 +42,8 @@ int CCValue[14] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 // GPIO Pins
 const int controlPin[8] = {2, 3, 4, 5, 6, 9, 22, 23};
-const int veloPin[8] = {10, 11, 12, 13, 14, 15, 18, 19};
+//const int veloPin[8] = {10, 11, 12, 13, 14, 15, 18, 19};
 const int notePin[8] = {7, 8, 24, 25, 28, 29, 36, 37};
-const char dacChannel[8] = {MCP4728_CHANNEL_A, MCP4728_CHANNEL_B, MCP4728_CHANNEL_C, MCP4728_CHANNEL_D, MCP4728_CHANNEL_A, MCP4728_CHANNEL_B, MCP4728_CHANNEL_C, MCP4728_CHANNEL_D};
 //const int SAVE_SWITCH_PIN = 24;
 //const int LOAD_SWITCH_PIN = 25;
 // I2C pins: ----------------> 16, 17
