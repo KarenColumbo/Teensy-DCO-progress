@@ -4,7 +4,6 @@
 #include <Adafruit_MCP4728.h>
 #include <SoftwareSerial.h>
 #include <Wire.h>
-#include <Adafruit_MCP23X17.h>
 #include "TCA9548.h"
 #include <EEPROM.h>
 #include "Bounce2.h"
