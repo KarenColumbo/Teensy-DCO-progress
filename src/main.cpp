@@ -34,8 +34,6 @@
 const int DETUNE = 0;
 const int PITCH_BEND_RANGE = 2;
 uint16_t benderValue = 0;
-uint8_t midiTempo;
-uint8_t midiController[10];
 bool susOn = false;
 uint8_t midiNote = 0;
 uint8_t velocity = 0;
@@ -48,7 +46,7 @@ uint8_t ccValue = 0;
 uint8_t sustainPedal = 0;
 uint8_t knobNumber = 0;
 uint8_t knobValue = 0;
-uint8_t knob[17] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+uint8_t knob[17];
 int midiNoteVoltage = 0;
 const int LFO_PIN = 40;
 
