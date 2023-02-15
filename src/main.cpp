@@ -2,6 +2,7 @@
 #include <Arduino.h>
 #include <MIDI.h>
 #include <Adafruit_MCP4728.h>
+#include <Adafruit_MCP23X17.h>
 #include <SoftwareSerial.h>
 #include <Wire.h>
 #include "TCA9548.h"
@@ -32,6 +33,16 @@ uint8_t knobNumber = 0;
 uint8_t knobValue = 0;
 uint8_t knob[17];
 int midiNoteVoltage = 0;
+
+// Define the AD9833 pins connected to the MCP23S17
+const uint8_t AD9833_PIN_1 = 0; // Connected to GPA0 of MCP23S17 #1
+const uint8_t AD9833_PIN_2 = 1; // Connected to GPA1 of MCP23S17 #1
+const uint8_t AD9833_PIN_3 = 2; // Connected to GPA2 of MCP23S17 #1
+const uint8_t AD9833_PIN_4 = 3; // Connected to GPA3 of MCP23S17 #1
+const uint8_t AD9833_PIN_5 = 0; // Connected to GPA0 of MCP23S17 #2
+const uint8_t AD9833_PIN_6 = 1; // Connected to GPA1 of MCP23S17 #2
+const uint8_t AD9833_PIN_7 = 2; // Connected to GPA2 of MCP23S17 #2
+const uint8_t AD9833_PIN_8 = 3; // Connected to GPA3 of MCP23S17 #2
 
 // ----------------------------- MIDI note frequencies C1-C7
 float noteFrequency [73] = {
@@ -202,6 +213,20 @@ void sustainNotes() {
 
 MIDI_CREATE_INSTANCE(HardwareSerial, Serial1,  MIDI);
 
+// Define the SPI settings for the MCP23S17 chips
+const SPISettings MCP23S17_SPISettings(1000000, MSBFIRST, SPI_MODE0);
+
+// Define the hardware addresses of the MCP23S17 chips (based on their A0, A1, A2 pin connections)
+const uint8_t MCP23S17_ADDRESS_BASE = 0x20;
+
+// Define the pin numbers of the MCP23S17 chips that are connected to the AD9833s
+const uint8_t AD9833_MCP23S17_PIN_1 = 0;
+const uint8_t AD9833_MCP23S17_PIN_2 = 1;
+
+// Initialize the MCP23S17 chips
+Adafruit_MCP23X17 mcp1;
+Adafruit_MCP23X17 mcp2;
+
 // ************************************************
 // ******************** SETUP *********************
 // ************************************************
@@ -209,6 +234,14 @@ MIDI_CREATE_INSTANCE(HardwareSerial, Serial1,  MIDI);
 void setup() {
 	Serial.begin(9600);
   MIDI.begin(MIDI_CHANNEL);
+
+  // Initialize the SPI interface
+  SPI.begin();
+
+  // Initialize the MCP23S17 chips over SPI
+  mcp1.begin_SPI(AD9833_MCP23S17_PIN_1);
+  mcp2.begin_SPI(AD9833_MCP23S17_PIN_2);
+
 }
 
 // ************************************************
