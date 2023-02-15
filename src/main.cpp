@@ -183,12 +183,11 @@ void noteOff(uint8_t midiNote) {
 void unsustainNotes() {
   for (int i = 0; i < NUM_VOICES; i++) {
     voices[i].sustained = false;
-      if (voices[i].keyDown == false) {
-        voices[i].noteOn = false;
-        voices[i].velocity = 0;
-        voices[i].midiNote = 0;
-        voices[i].noteAge = 0;
-      }
+    if (voices[i].keyDown == false) {
+      voices[i].noteOn = false;
+      voices[i].velocity = 0;
+      voices[i].midiNote = 0;
+      voices[i].noteAge = 0;
     }
   }
 }
