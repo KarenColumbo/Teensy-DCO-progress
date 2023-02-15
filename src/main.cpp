@@ -1,20 +1,3 @@
-// Physical connection for MCP23S17 and AD9833:
-//
-// For each MCP23S17:
-// - Connect the VCC and GND pins to the 3.3V and GND pins on the Teensy 4.1, respectively.
-// - Connect the SCK, MOSI, and MISO pins to the SCK, MOSI, and MISO pins on the Teensy 4.1, respectively.
-// - Connect the CS pin to a digital pin on the Teensy 4.1 (e.g. pin 10 for the first MCP23S17, and pin 11 for the second MCP23S17).
-// - Connect the A0-A2 pins to GND for the first MCP23S17, and to 3.3V for the second MCP23S17 (or vice versa).
-// - Connect the SDA and SCL pins to the SDA and SCL pins on the Teensy 4.1, respectively, for both MCP23S17s (using the same I2C bus).
-//
-// For each AD9833:
-// - Connect the FSYNC pin to a separate digital pin on the MCP23S17 it is connected to (e.g. GPA0 to MCP23S17 1, GPA1 to MCP23S17 1, GPB0 to MCP23S17 2, GPB1 to MCP23S17 2, etc).
-// - Connect the SCLK pin to the SCK pin of the MCP23S17 it is connected to.
-// - Connect the SDATA pin to the MOSI pin of the MCP23S17 it is connected to.
-//
-// Make sure to use appropriate decoupling capacitors near each MCP23S17 and AD9833, and to follow good wiring and grounding practices.
-
-
 #include <stdint.h>
 #include <Arduino.h>
 #include <MIDI.h>
@@ -31,8 +14,10 @@
 #define MCP2_CS 11
 #define NUM_VOICES 8
 #define MIDI_CHANNEL 1
-const int DETUNE = 0;
-const int PITCH_BEND_RANGE = 2;
+#define DETUNE 0
+#define PITCH_BEND_RANGE 2
+#define LFO_PIN 40
+
 uint16_t benderValue = 0;
 bool susOn = false;
 uint8_t midiNote = 0;
@@ -48,7 +33,6 @@ uint8_t knobNumber = 0;
 uint8_t knobValue = 0;
 uint8_t knob[17];
 int midiNoteVoltage = 0;
-const int LFO_PIN = 40;
 
 // ----------------------------- MIDI note frequencies C1-C7
 float noteFrequency [73] = {
@@ -100,7 +84,7 @@ void initializeVoices() {
     }
 }
 
-// ------------------------ Read LFO pin
+// ------------------------ Read LFO pin and change note pitch accordingly
 void applyLFO(float& freq) {
   float lfoDepth = (analogRead(LFO_PIN) / 4095.0 * 3.0) / 12.0;
   freq *= pow(2.0, lfoDepth / 12.0); 
@@ -122,21 +106,6 @@ void debugPrint(int voice) {
   Serial.print("\t -> Sustained: ");
   Serial.println(voices[voice].sustained);
 }
-
-// ------------------------ Initialize 23S17s
-// Define the SPI settings for the MCP23S17 chips
-const SPISettings MCP23S17_SPISettings(1000000, MSBFIRST, SPI_MODE0);
-
-// Define the hardware addresses of the MCP23S17 chips (based on their A0, A1, A2 pin connections)
-const uint8_t MCP23S17_ADDRESS_BASE = 0x20;
-
-// Define the pin numbers of the MCP23S17 chips that are connected to the AD9833s
-const uint8_t AD9833_MCP23S17_PIN_1 = 0;
-const uint8_t AD9833_MCP23S17_PIN_2 = 1;
-
-// Initialize the MCP23S17 chips
-Adafruit_MCP23X17 mcp1;
-Adafruit_MCP23X17 mcp2;
 
 // ------------------------ Voice buffer subroutines 
 int findOldestVoice() {
@@ -214,18 +183,14 @@ void noteOff(uint8_t midiNote) {
 // Sustain management
 void unsustainNotes() {
   for (int i = 0; i < NUM_VOICES; i++) {
-    //if (voices[i].noteOn == false) {
-      voices[i].sustained = false;
+    voices[i].sustained = false;
       if (voices[i].keyDown == false) {
         voices[i].noteOn = false;
-         voices[i].velocity = 0;
+        voices[i].velocity = 0;
         voices[i].midiNote = 0;
         voices[i].noteAge = 0;
       }
-    //}
-    
-      
-    
+    }
   }
 }
 
@@ -234,10 +199,8 @@ void sustainNotes() {
     if (voices[i].noteOn == true) {
       voices[i].sustained = true;
     }
-    
   }
 }
-
 
 MIDI_CREATE_INSTANCE(HardwareSerial, Serial1,  MIDI);
 
@@ -248,25 +211,6 @@ MIDI_CREATE_INSTANCE(HardwareSerial, Serial1,  MIDI);
 void setup() {
 	Serial.begin(9600);
   MIDI.begin(MIDI_CHANNEL);
-
-  SPI.begin();
-
-  // Initialize the SPI interface
-  SPI.begin();
-
-  // Initialize the MCP23S17 chips over SPI
-  mcp1.begin_SPI(AD9833_MCP23S17_PIN_1);
-  mcp2.begin_SPI(AD9833_MCP23S17_PIN_2);
-
-  // Set the MCP23S17's I/O direction
-  mcp1.pinMode(0, OUTPUT);
-  mcp1.pinMode(1, OUTPUT);
-  mcp1.pinMode(2, OUTPUT);
-  mcp1.pinMode(3, OUTPUT);
-  mcp2.pinMode(0, OUTPUT);
-  mcp2.pinMode(1, OUTPUT);
-  mcp2.pinMode(2, OUTPUT);
-  mcp2.pinMode(3, OUTPUT);
 }
 
 // ************************************************
@@ -282,25 +226,18 @@ void loop() {
       midiNote = MIDI.getData1();
       velocity = MIDI.getData2();
       noteOn(midiNote, velocity);
-      for (int i = 0; i < NUM_VOICES; i++) {
-        
-      }
     }
     
     // -------------------- Note Off
     if (MIDI.getType() == midi::NoteOff && MIDI.getChannel() == MIDI_CHANNEL) {
       midiNote = MIDI.getData1();
         noteOff(midiNote);
-      for (int i = 0; i < NUM_VOICES; i++) {
-        
-      }
     }
 
     // ------------------ Pitchbend 
     if (MIDI.getType() == midi::PitchBend && MIDI.getChannel() == MIDI_CHANNEL) {
       pitchBendVolts = MIDI.getData2() << 7 | MIDI.getData1(); // already 14 bits = Volts out
       pitchBendFreq = map((MIDI.getData2() << 7 | MIDI.getData1()), 0, 16383, PITCH_BEND_RANGE, 0 - PITCH_BEND_RANGE);
-      
     }
 
     // ------------------ Aftertouch 
@@ -341,7 +278,6 @@ void loop() {
   // ****************************************************************
 
   for (int i = 0; i < NUM_VOICES; i++) {
-    // Calculate pitchbender factor
     midiNoteVoltage = noteVolt[voices[i].midiNote];
     double pitchBendPosition = (double)pitchBendFreq / (double)16383 * 2.0;
     double factor = pow(2.0, pitchBendPosition / 12.0);
@@ -356,7 +292,5 @@ void loop() {
     if (voices[i].bentNoteVolts > 16383) {
       voices[i].bentNoteVolts = 16383;
     }
-    //
   }	
 }
-
