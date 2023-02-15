@@ -104,10 +104,7 @@ void initializeVoices() {
 
 // ------------------------ Read LFO pin
 void applyLFO(float& freq) {
-  // Read the voltage on the LFO input pin and map it to the range of LFO depth
   float lfoDepth = (analogRead(LFO_PIN) / 4095.0 * 3.0) / 12.0;
-  
-  // Calculate the pitch-bent frequency based on the LFO depth
   freq *= pow(2.0, lfoDepth / 12.0); 
 }
 
