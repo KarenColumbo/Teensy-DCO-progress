@@ -48,7 +48,9 @@ uint8_t ccValue = 0;
 uint8_t sustainPedal = 0;
 uint8_t knobNumber = 0;
 uint8_t knobValue = 0;
+uint8_t knob[17] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 int midiNoteVoltage = 0;
+const int LFO_PIN = 40;
 
 // ----------------------------- MIDI note frequencies C1-C7
 float noteFrequency [73] = {
@@ -98,6 +100,15 @@ void initializeVoices() {
     voices[i].bentNoteVolts = 0;
     voices[i].bentNoteFreq = 0;
     }
+}
+
+// ------------------------ Read LFO pin
+void applyLFO(float& freq) {
+  // Read the voltage on the LFO input pin and map it to the range of LFO depth
+  float lfoDepth = (analogRead(LFO_PIN) / 4095.0 * 3.0) / 12.0;
+  
+  // Calculate the pitch-bent frequency based on the LFO depth
+  freq *= pow(2.0, lfoDepth / 12.0); 
 }
 
 // ------------------------ Debug Print
@@ -270,7 +281,7 @@ void setup() {
 void loop() {
 
   if (MIDI.read()) {
-
+  
     // -------------------- Note On
     if (MIDI.getType() == midi::NoteOn && MIDI.getChannel() == MIDI_CHANNEL) {
       midiNote = MIDI.getData1();
@@ -325,7 +336,7 @@ void loop() {
       knobNumber = MIDI.getData1();
       knobValue = MIDI.getData2();
       if (knobNumber >69 && knobNumber <88) {
-        // ...
+        knob[knobNumber - 87] = knobValue;
       }
     }
   }
@@ -341,6 +352,9 @@ void loop() {
     double factor = pow(2.0, pitchBendPosition / 12.0);
     voices[i].bentNoteVolts = midiNoteVoltage * factor;
     voices[i].bentNoteFreq = noteFrequency[i] * factor;
+    float tempFreq = voices[i].bentNoteFreq;
+    applyLFO(tempFreq);
+    voices[i].bentNoteFreq = tempFreq;
     if (voices[i].bentNoteVolts < 0) {
       voices[i].bentNoteVolts = 0;
     }
