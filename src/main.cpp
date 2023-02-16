@@ -1,3 +1,6 @@
+// add several ADs by connecting FSYNCs to GPIOs
+
+
 #include <stdint.h>
 #include <Arduino.h>
 #include <MIDI.h>
