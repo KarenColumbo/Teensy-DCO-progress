@@ -1,4 +1,4 @@
-#include <SPI.h
+#include <SPI.h>
 #include "notes.h"
 
 // AD9833 control word and frequency register addresses
