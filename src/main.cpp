@@ -2,7 +2,6 @@
 #include <Arduino.h>
 #include <MIDI.h>
 #include <SoftwareSerial.h>
-#include <Wire.h>
 #include <SPI.h>
 #include <MD_AD9833.h>
 
@@ -115,9 +114,11 @@ void debugPrint(int voice) {
 
 // ------------------------ Voice buffer subroutines 
 
-void updateDCO (float updateFreq) {
-  AD.setFrequency(MD_AD9833::CHAN_0, updateFreq);
+void updateDCO(float updateFreq) {
+  uint32_t freq = (uint32_t)(updateFreq);
+  AD.setFrequency(MD_AD9833::CHAN_0, freq);
   Serial.println("Updated with " + String(updateFreq));
+  delay(10); // Add a delay to allow the AD9833 to update its output
 }
 
 int findOldestVoice() {
@@ -226,6 +227,7 @@ MIDI_CREATE_INSTANCE(HardwareSerial, Serial1,  MIDI);
 void setup() {
 	Serial.begin(9600);
   MIDI.begin(MIDI_CHANNEL);
+  
   AD.begin();
   AD.setMode(MD_AD9833::MODE_TRIANGLE);
 }

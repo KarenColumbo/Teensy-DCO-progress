@@ -26,6 +26,7 @@ float noteFrequency[73] = {
 
 void setup(void)
 {
+  
 	AD.begin();
   AD.setMode(MD_AD9833::MODE_TRIANGLE);
 }
