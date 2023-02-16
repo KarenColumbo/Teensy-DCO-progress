@@ -4,6 +4,7 @@
 #include <SoftwareSerial.h>
 #include <SPI.h>
 #include <MD_AD9833.h>
+#include "MCP23S17.h"
 
 #define NUM_VOICES 1
 #define MIDI_CHANNEL 1
@@ -27,12 +28,11 @@ uint8_t knobValue = 0;
 uint8_t knob[17];
 int midiNoteVoltage = 0;
 
-MD_AD9833	AD(FSYNC);
-
 // AD9833 control word and frequency register addresses
 const uint16_t AD_CTRL = 0x2100U;
 const uint16_t AD_FREQ0 = 0x4000U;
 const uint16_t AD_FREQ1 = 0x8000U;
+const uint8_t GPA0 = 0;
 
 // Pins for SPI comm with the AD9833 IC
 #define DATA  11  ///< SPI Data pin number
@@ -41,6 +41,9 @@ const uint16_t AD_FREQ1 = 0x8000U;
 // Pins for MCP23S17 I/O expander
 #define MCP_CS  9   ///< MCP23S17 chip select pin
 #define AD_CS   0   ///< MCP23S17 digital output pin connected to AD9833 FSYNC pin
+
+MCP23S17 MCP(9, 0, &SPI);
+MD_AD9833	AD(AD_CS);
 
 // ----------------------------- MIDI note frequencies C1-C7
 float noteFrequency [73] = {
@@ -118,9 +121,10 @@ void debugPrint(int voice) {
 // ------------------------ Voice buffer subroutines 
 
 void updateDCO(float updateFreq) {
-  mcp.digitalWrite(GPA0, LOW); // Set FSYNC pin LOW
-  ad.setFrequency(MD_AD9833::CHAN_0, updateFreq);
-  mcp.digitalWrite(GPA0, HIGH); // Set FSYNC pin HIGH
+  MCP.digitalWrite(GPA0, LOW); // Set FSYNC pin LOW
+  AD.setFrequency(MD_AD9833::CHAN_0, updateFreq);
+  MCP.digitalWrite(GPA0, HIGH); // Set FSYNC pin HIGH
+  Serial.println(updateFreq);
 }
 
 int findOldestVoice() {
@@ -222,8 +226,6 @@ void sustainNotes() {
 
 MIDI_CREATE_INSTANCE(HardwareSerial, Serial1,  MIDI);
 
-Adafruit_MCP23S17 mcp(MCP_CS);
-
 // ************************************************
 // ******************** SETUP *********************
 // ************************************************
@@ -231,10 +233,9 @@ Adafruit_MCP23S17 mcp(MCP_CS);
 void setup() {
 	Serial.begin(9600);
   MIDI.begin(MIDI_CHANNEL);
-
-  mcp.begin();
-  mcp.pinMode(GPA0, OUTPUT);
-  
+  SPI.begin();
+  MCP.begin();
+  MCP.pinMode(0, OUTPUT); // Set GPA0 as an output
   AD.begin();
   AD.setMode(MD_AD9833::MODE_TRIANGLE);
 }
