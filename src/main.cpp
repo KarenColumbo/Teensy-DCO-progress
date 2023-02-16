@@ -39,10 +39,10 @@ const uint8_t GPA0 = 0;
 #define CLK   13  ///< SPI Clock pin number
 
 // Pins for MCP23S17 I/O expander
-#define MCP_CS  9   ///< MCP23S17 chip select pin
+#define MCP_CS  10   ///< MCP23S17 chip select pin
 #define AD_CS   0   ///< MCP23S17 digital output pin connected to AD9833 FSYNC pin
 
-MCP23S17 MCP(9, 0, &SPI);
+MCP23S17 MCP(10, 0, &SPI);
 MD_AD9833	AD(AD_CS);
 
 // ----------------------------- MIDI note frequencies C1-C7
