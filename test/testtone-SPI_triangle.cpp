@@ -23,6 +23,16 @@ const uint16_t AD_FREQ1 = 0x8000U;
 // AD9833 clock frequency (Hz)
 #define F_MCLK 25000000
 
+// Helper function to get the FSYNC pin for a given AD9833 chip index
+uint8_t getFSYNCPin(int index) {
+  const uint8_t FSYNC_PINS[] = {FSYNC_1, FSYNC_2, FSYNC_3, FSYNC_4, FSYNC_5, FSYNC_6, FSYNC_7, FSYNC_8};
+  if ((unsigned int)index < sizeof(FSYNC_PINS) / sizeof(FSYNC_PINS[0])) {
+    return FSYNC_PINS[index];
+  } else {
+    return 0;
+  }
+}
+
 void setup() {
   // Set up the SPI bus
   SPI.begin();
@@ -42,7 +52,7 @@ void setup() {
 }
 
 void loop() {
-  for (int i = 0; i <= 73; i++)
+  for (int i = 0; i < 73; i++)
   {
   float freq = noteFrequency[i];
 
@@ -64,15 +74,5 @@ void loop() {
     // Set FSYNC pin HIGH for the current AD9833 chip
     digitalWriteFast(getFSYNCPin(i), HIGH);
   }
-  }
-}
-
-// Helper function to get the FSYNC pin for a given AD9833 chip index
-uint8_t getFSYNCPin(int index) {
-  const uint8_t FSYNC_PINS[] = {FSYNC_1, FSYNC_2, FSYNC_3, FSYNC_4, FSYNC_5, FSYNC_6, FSYNC_7, FSYNC_8};
-  if (index < sizeof(FSYNC_PINS) / sizeof(FSYNC_PINS[0])) {
-    return FSYNC_PINS[index];
-  } else {
-    return 0;
   }
 }
