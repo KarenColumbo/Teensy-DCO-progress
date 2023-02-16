@@ -4,10 +4,7 @@
 #include <SoftwareSerial.h>
 #include <Wire.h>
 #include <SPI.h>
-#include <MD_AD9833.h>
 
-#define MCP1_CS 10
-#define MCP2_CS 11
 #define NUM_VOICES 8
 #define MIDI_CHANNEL 1
 #define DETUNE 0
@@ -29,19 +26,6 @@ uint8_t knobNumber = 0;
 uint8_t knobValue = 0;
 uint8_t knob[17];
 int midiNoteVoltage = 0;
-float playFreq;
-
-// Pins for SPI comm with the AD9833 IC
-#define DATA  11	///< SPI Data pin number
-#define CLK   13	///< SPI Clock pin number
-#define FSYNC 9	///< SPI Load pin number (FSYNC in AD9833 usage)
-
-MD_AD9833	AD(FSYNC);
-
-// AD9833 control word and frequency register addresses
-const uint16_t AD_CTRL = 0x2100U;
-const uint16_t AD_FREQ0 = 0x4000U;
-const uint16_t AD_FREQ1 = 0x8000U;
 
 // ----------------------------- MIDI note frequencies C1-C7
 float noteFrequency [73] = {
@@ -94,10 +78,10 @@ void initializeVoices() {
 }
 
 // ------------------------ Read LFO pin and change note pitch accordingly
-void applyLFO(float& freq) {
+/*void applyLFO(float& freq) {
   float lfoDepth = (analogRead(LFO_PIN) / 4095.0 * 3.0) / 12.0;
   freq *= pow(2.0, lfoDepth / 12.0); 
-}
+}*/
 
 // ------------------------ Debug Print
 void debugPrint(int voice) {
@@ -106,8 +90,8 @@ void debugPrint(int voice) {
   Serial.print(voices[voice].midiNote);
   Serial.print("\tFreq: ");
   Serial.print(noteFrequency[voices[voice].midiNote]);
-  //Serial.print("\tBent: ");
-  //Serial.print(voices[voice].bentNoteFreq);
+  Serial.print("\tBent: ");
+  Serial.print(voices[voice].bentNoteFreq);
   Serial.print("\tkeyDown: ");
   Serial.print(voices[voice].keyDown);
   Serial.print("\tOn: ");
@@ -165,7 +149,6 @@ void noteOn(uint8_t midiNote, uint8_t velocity) {
           voice = i;
           break;
         }
-        
       }
     }
     voices[voice].prevNote = voices[voice].midiNote;
@@ -175,7 +158,6 @@ void noteOn(uint8_t midiNote, uint8_t velocity) {
   voices[voice].noteOn = true;
   voices[voice].keyDown = true;
   voices[voice].velocity = velocity;
-  AD.setFrequency(MD_AD9833::CHAN_0, noteFrequency[voices[voice].midiNote]);	
 }
 
 void noteOff(uint8_t midiNote) {
@@ -201,7 +183,6 @@ void unsustainNotes() {
       voices[i].midiNote = 0;
       voices[i].noteAge = 0;
     }
-    //debugPrint(i);
   }
 }
 
@@ -210,15 +191,10 @@ void sustainNotes() {
     if (voices[i].noteOn == true) {
       voices[i].sustained = true;
     }
-    //debugPrint(i);
   }
 }
 
 MIDI_CREATE_INSTANCE(HardwareSerial, Serial1,  MIDI);
-
-
-  
-
 
 // ************************************************
 // ******************** SETUP *********************
@@ -227,10 +203,6 @@ MIDI_CREATE_INSTANCE(HardwareSerial, Serial1,  MIDI);
 void setup() {
 	Serial.begin(9600);
   MIDI.begin(MIDI_CHANNEL);
-
-  AD.begin();
-  AD.setMode(MD_AD9833::MODE_TRIANGLE);
-
 }
 
 // ************************************************
@@ -246,19 +218,18 @@ void loop() {
       midiNote = MIDI.getData1();
       velocity = MIDI.getData2();
       noteOn(midiNote, velocity);
-      for (int i = 0; i < NUM_VOICES; i++) {
-        debugPrint(i);
-      }
-      
+       for (int i = 0; i < NUM_VOICES; i++) {
+            debugPrint(i);
+        }
     }
     
     // -------------------- Note Off
     if (MIDI.getType() == midi::NoteOff && MIDI.getChannel() == MIDI_CHANNEL) {
       midiNote = MIDI.getData1();
         noteOff(midiNote);
-        for (int i = 0; i < NUM_VOICES; i++) {
-        debugPrint(i);
-      }
+         for (int i = 0; i < NUM_VOICES; i++) {
+            debugPrint(i);
+        }
     }
 
     // ------------------ Pitchbend 
@@ -283,10 +254,16 @@ void loop() {
       if (sustainPedal > 63) {
         susOn = true;
         sustainNotes();
+        for (int i = 0; i < NUM_VOICES; i++) {
+            debugPrint(i);
+        }
       } 
       if (sustainPedal <= 63) {
         susOn = false;
         unsustainNotes();
+        for (int i = 0; i < NUM_VOICES; i++) {
+            debugPrint(i);
+        }
       }
     }
 
@@ -304,7 +281,7 @@ void loop() {
   // *************************** OUTPUT *****************************
   // ****************************************************************
 
-  /*for (int i = 0; i < NUM_VOICES; i++) {
+  for (int i = 0; i < NUM_VOICES; i++) {
     midiNoteVoltage = noteVolt[voices[i].midiNote];
     double pitchBendPosition = (double)pitchBendFreq / (double)16383 * 2.0;
     double factor = pow(2.0, pitchBendPosition / 12.0);
@@ -319,8 +296,5 @@ void loop() {
     if (voices[i].bentNoteVolts > 16383) {
       voices[i].bentNoteVolts = 16383;
     }
-    
-  }*/
-  AD.setFrequency(MD_AD9833::CHAN_0, noteFrequency[voices[0].midiNote]);	
-  
+  }	
 }

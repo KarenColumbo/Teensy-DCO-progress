@@ -257,8 +257,8 @@ void loop() {
       midiNote = MIDI.getData1();
         noteOff(midiNote);
         for (int i = 0; i < NUM_VOICES; i++) {
-        debugPrint(i);
-      }
+            debugPrint(i);
+        }
     }
 
     // ------------------ Pitchbend 
