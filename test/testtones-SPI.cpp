@@ -1,5 +1,5 @@
 #include <SPI.h
-#include <notes.h>
+#include "notes.h"
 
 // AD9833 control word and frequency register addresses
 const uint16_t AD_CTRL = 0x2100U;
