@@ -4,8 +4,9 @@
 #include <SoftwareSerial.h>
 #include <Wire.h>
 #include <SPI.h>
+#include <MD_AD9833.h>
 
-#define NUM_VOICES 8
+#define NUM_VOICES 1
 #define MIDI_CHANNEL 1
 #define DETUNE 0
 #define PITCH_BEND_RANGE 2
@@ -26,6 +27,18 @@ uint8_t knobNumber = 0;
 uint8_t knobValue = 0;
 uint8_t knob[17];
 int midiNoteVoltage = 0;
+
+// Pins for SPI comm with the AD9833 IC
+#define DATA  11	///< SPI Data pin number
+#define CLK   13	///< SPI Clock pin number
+#define FSYNC 9	///< SPI Load pin number (FSYNC in AD9833 usage)
+
+MD_AD9833	AD(FSYNC);
+
+// AD9833 control word and frequency register addresses
+const uint16_t AD_CTRL = 0x2100U;
+const uint16_t AD_FREQ0 = 0x4000U;
+const uint16_t AD_FREQ1 = 0x8000U;
 
 // ----------------------------- MIDI note frequencies C1-C7
 float noteFrequency [73] = {
@@ -57,8 +70,8 @@ const unsigned int noteVolt[73] = {
     bool keyDown;
     uint8_t velocity;
     uint8_t prevNote;
-    uint16_t bentNoteVolts;
-    uint16_t bentNoteFreq;
+    uint16_t noteVolts;
+    float noteFreq;
   };
 
 Voice voices[NUM_VOICES];
@@ -72,8 +85,8 @@ void initializeVoices() {
     voices[i].keyDown = false;
     voices[i].velocity = 0;
     voices[i].prevNote = 0;
-    voices[i].bentNoteVolts = 0;
-    voices[i].bentNoteFreq = 0;
+    voices[i].noteVolts = 0;
+    voices[i].noteFreq = 0;
     }
 }
 
@@ -90,8 +103,8 @@ void debugPrint(int voice) {
   Serial.print(voices[voice].midiNote);
   Serial.print("\tFreq: ");
   Serial.print(noteFrequency[voices[voice].midiNote]);
-  Serial.print("\tBent: ");
-  Serial.print(voices[voice].bentNoteFreq);
+  Serial.print("\tOut: ");
+  Serial.print(voices[voice].noteFreq);
   Serial.print("\tkeyDown: ");
   Serial.print(voices[voice].keyDown);
   Serial.print("\tOn: ");
@@ -101,6 +114,12 @@ void debugPrint(int voice) {
 }
 
 // ------------------------ Voice buffer subroutines 
+
+void updateDCO (float updateFreq) {
+  AD.setFrequency(MD_AD9833::CHAN_0, updateFreq);
+  Serial.println("Updated with " + String(updateFreq));
+}
+
 int findOldestVoice() {
   int oldestVoice = 0;
   unsigned long oldestAge = 0xFFFFFFFF;
@@ -158,6 +177,8 @@ void noteOn(uint8_t midiNote, uint8_t velocity) {
   voices[voice].noteOn = true;
   voices[voice].keyDown = true;
   voices[voice].velocity = velocity;
+  voices[voice].noteFreq = noteFrequency[voices[voice].midiNote];
+  updateDCO(noteFrequency[voices[voice].midiNote]);
 }
 
 void noteOff(uint8_t midiNote) {
@@ -169,6 +190,7 @@ void noteOff(uint8_t midiNote) {
       voices[voice].velocity = 0;
       voices[voice].midiNote = 0;
       voices[voice].noteAge = 0;
+      voices[voice].noteFreq = 0;
     }
   }
 }
@@ -182,6 +204,7 @@ void unsustainNotes() {
       voices[i].velocity = 0;
       voices[i].midiNote = 0;
       voices[i].noteAge = 0;
+      voices[i].noteFreq = 0;
     }
   }
 }
@@ -203,6 +226,8 @@ MIDI_CREATE_INSTANCE(HardwareSerial, Serial1,  MIDI);
 void setup() {
 	Serial.begin(9600);
   MIDI.begin(MIDI_CHANNEL);
+  AD.begin();
+  AD.setMode(MD_AD9833::MODE_TRIANGLE);
 }
 
 // ************************************************
@@ -281,7 +306,7 @@ void loop() {
   // *************************** OUTPUT *****************************
   // ****************************************************************
 
-  for (int i = 0; i < NUM_VOICES; i++) {
+  /*for (int i = 0; i < NUM_VOICES; i++) {
     midiNoteVoltage = noteVolt[voices[i].midiNote];
     double pitchBendPosition = (double)pitchBendFreq / (double)16383 * 2.0;
     double factor = pow(2.0, pitchBendPosition / 12.0);
@@ -295,6 +320,5 @@ void loop() {
     }
     if (voices[i].bentNoteVolts > 16383) {
       voices[i].bentNoteVolts = 16383;
-    }
-  }	
+    } */
 }
