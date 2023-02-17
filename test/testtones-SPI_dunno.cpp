@@ -14,22 +14,28 @@ const uint16_t AD_FREQ0 = 0x4000U;
 const uint16_t AD_FREQ1 = 0x8000U;
 const uint32_t FREQ_FACTOR = 1UL << 28;
 
-void setADFrequency(float frequency) {
+// Array of note frequencies in Hertz
+
+void setADFrequency(uint8_t channel, float frequency) {
   
   // Set FSYNC pin LOW
   digitalWrite(FSYNC, LOW);
-  
-  // Calculate and write frequency control words
-  uint32_t freqWord = frequency * FREQ_FACTOR / F_MCLK;
-  uint16_t freqLow = freqWord & 0x3FFF;
-  uint16_t freqHigh = (freqWord >> 14) & 0x3FFF;
-
-  // Write frequency control words to the AD9833
-  SPI.transfer16(AD_FREQ0 | freqLow);
-  SPI.transfer16(AD_FREQ1 | freqHigh);
 
   // Write control register to set output to SINE, enable output, and reset phase
   SPI.transfer16(AD_CTRL | 0x02);
+
+  // Calculate and write frequency control word
+  uint32_t freqWord = frequency * FREQ_FACTOR / F_MCLK;
+  uint16_t freqLow = freqWord & 0x3FFF;
+  uint16_t freqHigh = (freqWord >> 14) & 0x3FFF;
+  if (channel == 0) {
+    SPI.transfer16(AD_FREQ0 | freqLow);
+    SPI.transfer16(AD_FREQ1 | freqHigh);
+  }
+  else {
+    SPI.transfer16(AD_FREQ0 | freqLow | 0x2000);
+    SPI.transfer16(AD_FREQ1 | freqHigh);
+  }
 
   // Set FSYNC pin HIGH
   digitalWrite(FSYNC, HIGH);
@@ -38,7 +44,13 @@ void setADFrequency(float frequency) {
 void setup()
 {
   Serial.begin(9600);
-    
+  /* ORIGINAL!!! ****************************
+
+	AD.begin();
+  AD.setMode(MD_AD9833::MODE_TRIANGLE);
+  */
+  
+  // Set up the SPI bus
   SPI.begin();
   SPI.setClockDivider(SPI_CLOCK_DIV2);
   SPI.setDataMode(SPI_MODE2);
@@ -48,14 +60,23 @@ void setup()
   pinMode(CLK, OUTPUT);
   pinMode(DATA, OUTPUT);
   pinMode(FSYNC, OUTPUT);
+
+  // Send reset command to AD9833
+  digitalWrite(FSYNC, LOW);
+  SPI.transfer16(0x0100);
+  digitalWrite(FSYNC, HIGH);
 }
 
 void loop()
 {
-  for (int i = 0; i <= 72; i++) 
+  
+  for (int i = 45; i <= 72; i++) 
   {
-    setADFrequency(noteFrequency[i]);
+    setADFrequency(0, i);
     Serial.println(i);
-    delay(1000);
-  }  
+    delay(2000);
+  }
+  
+  
+  
 }
