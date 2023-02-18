@@ -5,6 +5,7 @@
 #include <MIDI.h>
 #include <SoftwareSerial.h>
 #include <SPI.h>
+#include <IntervalTimer.h>
 
 #define NUM_VOICES 4
 #define MIDI_CHANNEL 1
@@ -239,30 +240,31 @@ float calculatePortaShift(int voicenumber) {
 }
 
 
-/*void updateVoice(Voice& voice, float deltaTime) {
-  // Calculate the current frequency based on the current note, MIDI pitch bend, and LFO value
-  float currentFreq = getFrequencyForMidiNote(
-    voice.currentNote + voice.currentPitchBend, 
-    voice.lfoValue
-  );
-
-  // If portamento is enabled, calculate the portamento shift
-  if (voice.portamentoEnabled) {
-    float prevFreq = voice.prevNoteFreq;
-    if (prevFreq != currentFreq) {
-      currentFreq = calculatePortamentoShift(prevFreq, currentFreq, voice.portamentoSpeed, deltaTime);
+void updateVoices() {
+  /*float deltaTime = 0.001f; // Fixed time interval of 1 millisecond
+  
+  for (int i = 0; i < NUM_VOICES; i++) {
+    if (voices[i].noteOn) {
+      float currentFreq = voices[i].noteFreq;
+      
+      // If portamento is enabled, calculate the portamento shift
+      if (portaEnabled && voices[i].prevNoteFreq != currentFreq) {
+        currentFreq = calculatePortaShift(i);
+      }
+      
+      // Output the frequency for the voice to the appropriate AD9833
+      AD9833setFrequency(i, currentFreq, -1);
+      
+      // Update the fields for the voice
+      voices[i].prevNoteFreq = currentFreq;
+      voices[i].prevNoteAge = voices[i].noteAge;
     }
   }
-
-  // Output the frequency for the voice to the appropriate AD9833
-  // ...
-
-  // Update the fields for the voice
-  voice.prevNote = voice.currentNote;
-  voice.prevNoteFreq = currentFreq;
 }
 
-*/
+void timerCallback() {
+  updateVoices();*/
+}
 
 // ------------------------ Voice buffer subroutines 
 
@@ -391,6 +393,10 @@ MIDI_CREATE_INSTANCE(HardwareSerial, Serial1,  MIDI);
 // ************************************************
 
 void setup() {
+  /*// Initialize the IntervalTimer to trigger the timerCallback() function every 1 millisecond
+  IntervalTimer timer;
+  timer.begin(timerCallback, 1000); // Trigger every 1 millisecond (1000 microseconds)*/
+
 	Serial.begin(9600);
   MIDI.begin(MIDI_CHANNEL);
   SPI.begin();
