@@ -7,7 +7,7 @@
 #include <SoftwareSerial.h>
 #include <SPI.h>
 
-#define NUM_VOICES 2
+#define NUM_VOICES 8
 #define MIDI_CHANNEL 1
 #define DETUNE 0
 #define PITCH_BEND_RANGE 2
@@ -30,7 +30,7 @@ uint8_t knob[17];
 int midiNoteVoltage = 0;
 
 // ----------------------------- DCO vars
-const int FSYNC0 = 9;                 
+const int FSYNC = 9;                 
 #define SPI_CLOCK_SPEED 7500000                     // 7.5 MHz SPI clock - this works ALMOST without clock ticks
 unsigned long MCLK = 25000000;      
 
@@ -88,14 +88,13 @@ void initializeVoices() {
 // **************************** DCO routines *****************************
 // ***********************************************************************
 
-void AD9833setFrequency(int board, long frequency) {
+void AD9833setFrequency(long frequency) {
   long FreqReg = (frequency * pow(2, 28)) / MCLK;   // Data sheet Freq Calc formula
   int MSB = (int)((FreqReg & 0xFFFC000) >> 14);     // only lower 14 bits are used for data
   int LSB = (int)(FreqReg & 0x3FFF);
-  char tempBoard = "FSYNC" + board;
-
+  
   SPI.beginTransaction(SPISettings(SPI_CLOCK_SPEED, MSBFIRST, SPI_MODE2));
-  digitalWrite(tempBoard, LOW);                         // set FSYNC low before writing to AD9833 registers
+  digitalWrite(FSYNC, LOW);                         // set FSYNC low before writing to AD9833 registers
 
   LSB |= 0x4000;                                    // DB 15=0, DB14=1
   MSB |= 0x4000;                                    // DB 15=0, DB14=1
@@ -105,16 +104,8 @@ void AD9833setFrequency(int board, long frequency) {
   SPI.transfer16(0x2002);                           // take AD9833 out of reset and output triangle wave (DB8=0)
   delayMicroseconds(2);                             // Settle time? Doesn't make much difference …
 
-  digitalWrite(tempBoard, HIGH);                        // write done, set FSYNC high
+  digitalWrite(FSYNC, HIGH);                        // write done, set FSYNC high
   SPI.endTransaction();
-}
-
-void AD9833Reset(int AD_board) {
-  SPI.beginTransaction(SPISettings(SPI_CLOCK_SPEED, MSBFIRST, SPI_MODE2));
-  char tempPin = "FSYNC" + AD_board;
-  digitalWrite(tempPin, LOW);
-  SPI.transfer16(0x2100);
-  digitalWrite(tempPin, HIGH);
 }
 
 // ------------------------ Read LFO pin and change note pitch accordingly
@@ -255,13 +246,10 @@ MIDI_CREATE_INSTANCE(HardwareSerial, Serial1,  MIDI);
 void setup() {
 	Serial.begin(9600);
   MIDI.begin(MIDI_CHANNEL);
+  pinMode(FSYNC, OUTPUT);                           // Prepare FSYNC pin for output
+  digitalWrite(FSYNC, HIGH);                        // Set it high for good measure
   SPI.begin();
-  for (int i = 0; i < NUM_VOICES; i++) {
-    char initPin = "FSYNC" + i;
-    pinMode(initPin, OUTPUT);                           // Prepare FSYNC pin for output
-    digitalWrite(initPin, HIGH); 
-    AD9833Reset(i);
-    }                     // Set it high for good measure
+  SPI.transfer16(0x2100);
 }
 
 // ************************************************
@@ -280,7 +268,7 @@ void loop() {
        for (int i = 0; i < NUM_VOICES; i++) {
             debugPrint(i);
         }
-      
+        AD9833setFrequency(noteFrequency[midiNote]);
     }
     
     // -------------------- Note Off

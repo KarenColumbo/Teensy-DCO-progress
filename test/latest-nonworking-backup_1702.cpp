@@ -104,12 +104,12 @@ void debugPrint(int voice) {
 
 // ------------------------ Voice buffer subroutines 
 
-void updateDCO(float updateFreq) {
+/*void updateDCO(float updateFreq) {
   MCP.digitalWrite(GPA0, LOW); // Set FSYNC pin LOW
   AD.setFrequency(MD_AD9833::CHAN_0, updateFreq);
   MCP.digitalWrite(GPA0, HIGH); // Set FSYNC pin HIGH
   Serial.println(updateFreq);
-}
+}*/
 
 int findOldestVoice() {
   int oldestVoice = 0;
@@ -217,11 +217,6 @@ MIDI_CREATE_INSTANCE(HardwareSerial, Serial1,  MIDI);
 void setup() {
 	Serial.begin(9600);
   MIDI.begin(MIDI_CHANNEL);
-  SPI.begin();
-  MCP.begin();
-  MCP.pinMode(0, OUTPUT); // Set GPA0 as an output
-  AD.begin();
-  AD.setMode(MD_AD9833::MODE_TRIANGLE);
 }
 
 // ************************************************
