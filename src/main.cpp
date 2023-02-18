@@ -7,7 +7,7 @@
 #include <SoftwareSerial.h>
 #include <SPI.h>
 
-#define NUM_VOICES 2
+#define NUM_VOICES 4
 #define MIDI_CHANNEL 1
 #define DETUNE 0
 #define PITCH_BEND_RANGE 2
@@ -30,7 +30,7 @@ uint8_t knob[17];
 int midiNoteVoltage = 0;
 
 // ----------------------------- DCO vars
-const int FSYNC_PINS[2] = {8, 9};
+const int FSYNC_PINS[4] = {6, 7, 8, 9};
 #define SPI_CLOCK_SPEED 7500000                     // 7.5 MHz SPI clock - this works ALMOST without clock ticks
 unsigned long MCLK = 25000000;      
 
