@@ -13,12 +13,10 @@
 #define PITCH_BEND_RANGE 2
 #define LFO_PIN 40
 
-uint16_t benderValue = 0;
+uint16_t pitchBenderValue = 8192;
 bool susOn = false;
 uint8_t midiNote = 0;
 uint8_t velocity = 0;
-double pitchBendFreq = 0;
-int pitchBendVolts = 8192;
 uint8_t aftertouch = 0;
 uint8_t modulationWheel = 0;
 uint8_t ccNumber = 0;
@@ -129,6 +127,8 @@ void debugPrint(int voice) {
   Serial.print(voices[voice].midiNote);
   Serial.print("\tFreq: ");
   Serial.print(noteFrequency[voices[voice].midiNote]);
+  Serial.print(" -> ");
+  Serial.print(voices[voice].noteFreq);
   Serial.print("\tOut: ");
   Serial.print(voices[voice].noteFreq);
   Serial.print("\tkeyDown: ");
@@ -136,7 +136,7 @@ void debugPrint(int voice) {
   Serial.print("\tOn: ");
   Serial.print(voices[voice].noteOn);
   Serial.print("\t -> Sustained: ");
-  Serial.println(voices[voice].sustained);
+  Serial.println(voices[voice].sustained); 
 }
 
 // ------------------------ Voice buffer subroutines 
@@ -206,7 +206,12 @@ void noteOn(uint8_t midiNote, uint8_t velocity) {
   voices[voice].noteOn = true;
   voices[voice].keyDown = true;
   voices[voice].velocity = velocity;
-  voices[voice].noteFreq = noteFrequency[voices[voice].midiNote];
+  float bendFactor = map(pitchBenderValue, 0, 16383, -PITCH_BEND_RANGE, PITCH_BEND_RANGE);
+  float semiToneDiff = noteFrequency[voices[voice].midiNote] * pow(2, 1/12.0) - noteFrequency[voices[voice].midiNote];
+  voices[voice].noteFreq = noteFrequency[voices[voice].midiNote] + semiToneDiff * bendFactor; 
+  
+
+  
   //updateDCO(noteFrequency[voices[voice].midiNote]);
   for (int i = 0; i < NUM_VOICES; i++) {
     if (voices[i].noteOn) {
@@ -299,8 +304,7 @@ void loop() {
 
     // ------------------ Pitchbend 
     if (MIDI.getType() == midi::PitchBend && MIDI.getChannel() == MIDI_CHANNEL) {
-      pitchBendVolts = MIDI.getData2() << 7 | MIDI.getData1(); // already 14 bits = Volts out
-      pitchBendFreq = map((MIDI.getData2() << 7 | MIDI.getData1()), 0, 16383);
+      pitchBenderValue = MIDI.getData2() << 7 | MIDI.getData1(); // already 14 bits = Volts out
     }
 
     // ------------------ Aftertouch 
@@ -346,20 +350,4 @@ void loop() {
   // ****************************************************************
   // *************************** OUTPUT *****************************
   // ****************************************************************
-
-  /*for (int i = 0; i < NUM_VOICES; i++) {
-    midiNoteVoltage = noteVolt[voices[i].midiNote];
-    double pitchBendPosition = (double)pitchBendFreq / (double)16383 * 2.0;
-    double factor = pow(2.0, pitchBendPosition / 12.0);
-    voices[i].bentNoteVolts = midiNoteVoltage * factor;
-    voices[i].bentNoteFreq = noteFrequency[i] * factor;
-    float tempFreq = voices[i].bentNoteFreq;
-    //applyLFO(tempFreq);
-    voices[i].bentNoteFreq = tempFreq;
-    if (voices[i].bentNoteVolts < 0) {
-      voices[i].bentNoteVolts = 0;
-    }
-    if (voices[i].bentNoteVolts > 16383) {
-      voices[i].bentNoteVolts = 16383;
-    } */
 }
