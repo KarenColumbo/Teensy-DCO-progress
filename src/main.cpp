@@ -300,7 +300,7 @@ void loop() {
     // ------------------ Pitchbend 
     if (MIDI.getType() == midi::PitchBend && MIDI.getChannel() == MIDI_CHANNEL) {
       pitchBendVolts = MIDI.getData2() << 7 | MIDI.getData1(); // already 14 bits = Volts out
-      pitchBendFreq = map((MIDI.getData2() << 7 | MIDI.getData1()), 0, 16383, PITCH_BEND_RANGE, 0 - PITCH_BEND_RANGE);
+      pitchBendFreq = map((MIDI.getData2() << 7 | MIDI.getData1()), 0, 16383);
     }
 
     // ------------------ Aftertouch 
