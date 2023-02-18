@@ -6,6 +6,7 @@
 #include <SoftwareSerial.h>
 #include <SPI.h>
 #include <IntervalTimer.h>
+#include <algorithm>
 
 #define NUM_VOICES 4
 #define MIDI_CHANNEL 1
@@ -25,10 +26,9 @@ uint8_t ccValue = 0;
 uint8_t sustainPedal = 0;
 uint8_t knobNumber = 0;
 uint8_t knobValue = 0;
-uint8_t knob[17];
+uint8_t knobNumbers[17];
 int midiNoteVoltage = 0;
 uint8_t portaSpeed = 0;
-
 
 // ----------------------------- DCO vars
 const int FSYNC_PINS[4] = {6, 7, 8, 9};
@@ -45,7 +45,6 @@ float noteFrequency[73] = {
   1046.5023, 1108.7305, 1174.6591, 1244.5085, 1318.5102, 1396.9129, 1479.9777, 1567.9817, 1661.2188, 1760.0000, 1864.6550, 1975.5332, 
   2093.0045
 };
-
 
 // ----------------------------- 14 bit note frequency voltages C1-C7
 const unsigned int noteVolt[73] = {
@@ -217,12 +216,6 @@ void bendNotes() {
   }
 }
 
-// ------------------------ Read LFO pin and change note pitch accordingly
-/*void applyLFO(float& freq) {
-  float lfoDepth = (analogRead(LFO_PIN) / 4095.0 * 3.0) / 12.0;
-  freq *= pow(2.0, lfoDepth / 12.0); 
-}*/
-
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //+++++++++++++++++++++++ PORTAMENTO & VOICE UPDATE ++++++++++++
 //*****************************************************************
@@ -239,13 +232,17 @@ float calculatePortaShift(int voicenumber) {
   }
 }
 
-
 void updateVoices() {
   /*float deltaTime = 0.001f; // Fixed time interval of 1 millisecond
   
   for (int i = 0; i < NUM_VOICES; i++) {
     if (voices[i].noteOn) {
       float currentFreq = voices[i].noteFreq;
+      // ------------------------ Read LFO pin and change note pitch accordingly
+      void applyLFO(float& freq) {
+      float lfoDepth = (analogRead(LFO_PIN) / 4095.0 * 3.0) / 12.0;
+      freq *= pow(2.0, lfoDepth / 12.0); 
+      }
       
       // If portamento is enabled, calculate the portamento shift
       if (portaEnabled && voices[i].prevNoteFreq != currentFreq) {
@@ -265,15 +262,6 @@ void updateVoices() {
 void timerCallback() {
   updateVoices();*/
 }
-
-// ------------------------ Voice buffer subroutines 
-
-/*void updateDCO(float updateFreq) {
-  MCP.digitalWrite(GPA0, LOW); // Set FSYNC pin LOW
-  AD.setFrequency(MD_AD9833::CHAN_0, updateFreq);
-  MCP.digitalWrite(GPA0, HIGH); // Set FSYNC pin HIGH
-  Serial.println(updateFreq);
-}*/
 
 int findOldestVoice() {
   int oldestVoice = 0;
@@ -337,15 +325,7 @@ void noteOn(uint8_t midiNote, uint8_t velocity) {
   voices[voice].noteFreq = noteFrequency[voices[voice].midiNote];
   voices[voice].portaDiff = voices[voice].noteFreq - voices[voice].prevNoteFreq;
   bendNotes();
-  
 
-  /*
-  //updateDCO(noteFrequency[voices[voice].midiNote]);
-  for (int i = 0; i < NUM_VOICES; i++) {
-    if (voices[i].noteOn) {
-      AD9833setFrequency(i, voices[i].noteFreq);  
-    }
-  } */
 }
 
 void noteOff(uint8_t midiNote) {
@@ -424,7 +404,6 @@ void loop() {
        for (int i = 0; i < NUM_VOICES; i++) {
             debugPrint(i);
         }
-      
     }
     
     // -------------------- Note Off
@@ -474,18 +453,17 @@ void loop() {
 
     // ------------------ MIDI CC
     if (MIDI.getType() == midi::ControlChange && MIDI.getChannel() == MIDI_CHANNEL) {
-      knobNumber = MIDI.getData1();
-      knobValue = MIDI.getData2();
-      if (knobNumber >69 && knobNumber <88) {
-        knob[knobNumber - 87] = knobValue;
-      }
+      int knobNumber = MIDI.getData1();
+      int knobValue = MIDI.getData2();
+      /*// Check if knobNumber is part of the knobNumbers array
+      if (std::find(std::begin(knobNumbers), std::end(knobNumbers), knobNumber) != std::end(knobNumbers)) {
+        knob[knobNumber] = knobValue;
+      }*/
     }
   }
 
   // ****************************************************************
   // *************************** OUTPUT *****************************
   // ****************************************************************
-  
-
 
 }
