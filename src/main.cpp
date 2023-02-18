@@ -30,7 +30,7 @@ uint8_t knob[17];
 int midiNoteVoltage = 0;
 
 // ----------------------------- DCO vars
-const int FSYNC_PINS[] = {9, 10};
+const int FSYNC_PINS[2] = {8, 9};
 #define SPI_CLOCK_SPEED 7500000                     // 7.5 MHz SPI clock - this works ALMOST without clock ticks
 unsigned long MCLK = 25000000;      
 
