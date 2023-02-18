@@ -1,5 +1,9 @@
-#include <SPI.h>                      // pin 13 (SCK), pin 11 (MOSI), AD9833 generator
-const int FSYNC = 10;                 // pin 10 (SS)
+#include <SPI.h> 
+#include <SoftwareSerial.h>                     
+#include "notes.h"
+
+// pin 13 (SCK), pin 11 (MOSI), AD9833 generator
+const int FSYNC = 9;                 // pin 10 (SS)
 #define SPI_CLOCK_SPEED 12000000      // 12MHz SPI clock
 unsigned long MCLK = 25000000;        // AD9833 onboard crystal reference frequency
 
@@ -24,7 +28,7 @@ void AD9833setFrequency(unsigned int channel, long frequency) {
     WriteRegister(LSB);                 // write lower 16 bits to AD9833 registers
     WriteRegister(MSB);                 // write upper 16 bits to AD9833 registers
     WriteRegister(0xC000);              // write phase register
-    WriteRegister(0x2000);              // take AD9833 out of reset and output sinewave (DB8=0)
+    WriteRegister(0x2002);              // take AD9833 out of reset and output sinewave (DB8=0)
   }
   else if (channel == 1) {
     LSB |= 0xC000;                      // DB 15=1, DB14=1
@@ -34,8 +38,9 @@ void AD9833setFrequency(unsigned int channel, long frequency) {
     WriteRegister(LSB);                 // write lower 16 bits to AD9833 registers
     WriteRegister(MSB);                 // write upper 16 bits to AD9833 registers
     WriteRegister(0xE000);              // write phase register
-    WriteRegister(0x2002);              // take AD9833 out of reset and output sinewave (DB9=0)
+    WriteRegister(0x2028);              // take AD9833 out of reset and output sinewave (DB9=0)
   }
+  
 }
 
 void setup() {
@@ -46,5 +51,11 @@ void setup() {
   AD9833setFrequency(1, 2000);        // set frequency for channel 1
 }
 
-void loop() {
+void loop () {
+  for (int i = 0; i <= 72; i++) {
+    
+    AD9833setFrequency(0, noteFrequency[i]);
+    //AD9833setFrequency(1, noteFrequency[i]);
+    delay(500);
+  }
 }
