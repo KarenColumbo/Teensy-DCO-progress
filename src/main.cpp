@@ -1,5 +1,4 @@
-// add several ADs by connecting FSYNCs to GPIOs
-
+// At the moment notes that are off don't get pitchbent because pitchbend in the ADSR release phase is ugly. Maybe put a switch in: "Releasebend on/off"?
 
 #include <stdint.h>
 #include <Arduino.h>
@@ -13,7 +12,8 @@
 #define PITCH_BEND_RANGE 2
 #define LFO_PIN 40
 
-uint16_t pitchBenderValue = 8192;
+float pitchBenderValue = 8192;
+float bendFactor = 0;
 bool susOn = false;
 uint8_t midiNote = 0;
 uint8_t velocity = 0;
@@ -87,6 +87,26 @@ void initializeVoices() {
 // **************************** DCO routines *****************************
 // ***********************************************************************
 
+// ------------------------ Debug Print
+void debugPrint(int voice) {
+  Serial.print("Voice #" + String(voice));
+  Serial.print("  Key: ");
+  Serial.print(voices[voice].midiNote);
+  Serial.print("\tFreq: ");
+  Serial.print(noteFrequency[voices[voice].midiNote]);
+  Serial.print(" -> ");
+  Serial.print(voices[voice].noteFreq);
+  Serial.print("\tOut: ");
+  Serial.print(voices[voice].noteFreq);
+  Serial.print("\tkeyDown: ");
+  Serial.print(voices[voice].keyDown);
+  Serial.print("\tOn: ");
+  Serial.print(voices[voice].noteOn);
+  Serial.print("\t -> Sustained: ");
+  Serial.println(voices[voice].sustained); 
+  //Serial.println(bendFactor);
+}
+
 void AD9833setFrequency(int board, long frequency) {
   long FreqReg = (frequency * pow(2, 28)) / MCLK;   // Data sheet Freq Calc formula
   int MSB = (int)((FreqReg & 0xFFFC000) >> 14);     // only lower 14 bits are used for data
@@ -115,30 +135,23 @@ void AD9833Reset(int AD_board) {
   digitalWrite(FSYNC_RESET_PIN, HIGH);
 }
 
+void bendNotes() {
+  for (int i = 0; i < NUM_VOICES; i++) {
+    float ratio = pow(2, 1 / 12.0);
+    bendFactor = map(pitchBenderValue, 0, 16383, -PITCH_BEND_RANGE, PITCH_BEND_RANGE);
+    if (voices[i].noteOn == true) {
+      voices[i].noteFreq = noteFrequency[voices[i].midiNote] * pow(ratio, bendFactor);
+      AD9833setFrequency(i, voices[i].noteFreq);
+    }
+    debugPrint(i);
+  }
+}
+
 // ------------------------ Read LFO pin and change note pitch accordingly
 /*void applyLFO(float& freq) {
   float lfoDepth = (analogRead(LFO_PIN) / 4095.0 * 3.0) / 12.0;
   freq *= pow(2.0, lfoDepth / 12.0); 
 }*/
-
-// ------------------------ Debug Print
-void debugPrint(int voice) {
-  Serial.print("Voice #" + String(voice));
-  Serial.print("  Key: ");
-  Serial.print(voices[voice].midiNote);
-  Serial.print("\tFreq: ");
-  Serial.print(noteFrequency[voices[voice].midiNote]);
-  Serial.print(" -> ");
-  Serial.print(voices[voice].noteFreq);
-  Serial.print("\tOut: ");
-  Serial.print(voices[voice].noteFreq);
-  Serial.print("\tkeyDown: ");
-  Serial.print(voices[voice].keyDown);
-  Serial.print("\tOn: ");
-  Serial.print(voices[voice].noteOn);
-  Serial.print("\t -> Sustained: ");
-  Serial.println(voices[voice].sustained); 
-}
 
 // ------------------------ Voice buffer subroutines 
 
@@ -173,6 +186,7 @@ int findVoice(uint8_t midiNote) {
 }
 
 void noteOn(uint8_t midiNote, uint8_t velocity) {
+    
   int voice = findVoice(midiNote);
   if (voice == -1) {
     int numPlayingVoices = 0;
@@ -208,15 +222,16 @@ void noteOn(uint8_t midiNote, uint8_t velocity) {
   voices[voice].keyDown = true;
   voices[voice].velocity = velocity;
   voices[voice].noteFreq = noteFrequency[voices[voice].midiNote];
+  bendNotes();
   
 
-  
+  /*
   //updateDCO(noteFrequency[voices[voice].midiNote]);
   for (int i = 0; i < NUM_VOICES; i++) {
     if (voices[i].noteOn) {
-      AD9833setFrequency(i, noteFrequency[voices[i].midiNote]);  
+      AD9833setFrequency(i, voices[i].noteFreq);  
     }
-  }
+  } */
 }
 
 void noteOff(uint8_t midiNote) {
@@ -252,13 +267,6 @@ void sustainNotes() {
     if (voices[i].noteOn == true) {
       voices[i].sustained = true;
     }
-  }
-}
-
-void bendNotes() {
-  for (int i = 0; i < NUM_VOICES; i++) {
-    // PLEASE CALCULATE PITCH BEND FACTOR AND PUT IT IN voices[i].noteFreq
-    debugPrint(i);
   }
 }
 
@@ -358,4 +366,6 @@ void loop() {
   // *************************** OUTPUT *****************************
   // ****************************************************************
   
+
+
 }
