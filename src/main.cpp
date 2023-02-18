@@ -62,7 +62,7 @@ const unsigned int noteVolt[73] = {
     bool sustained;
     bool keyDown;
     uint8_t velocity;
-    uint8_t prevNote;
+    float prevNoteFreq;
     uint16_t noteVolts;
     float noteFreq;
   };
@@ -77,7 +77,7 @@ void initializeVoices() {
     voices[i].sustained = false;
     voices[i].keyDown = false;
     voices[i].velocity = 0;
-    voices[i].prevNote = 0;
+    voices[i].prevNoteFreq = 0;
     voices[i].noteVolts = 0;
     voices[i].noteFreq = 0;
     }
@@ -215,6 +215,40 @@ void bendNotes() {
   float lfoDepth = (analogRead(LFO_PIN) / 4095.0 * 3.0) / 12.0;
   freq *= pow(2.0, lfoDepth / 12.0); 
 }*/
+
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//+++++++++++++++++++++++ PORTAMENTO & VOICE UPDATE ++++++++++++
+//*****************************************************************
+/*float calculatePortamentoShift(float prevNoteFreq, float noteFreq, float portSpeed, float deltaTime) {
+  float portamentoRange = abs(noteFreq - prevNoteFreq); // Calculate the total range of the portamento effect
+  float portamentoStep = portamentoRange * (portSpeed * deltaTime); // Calculate the step size for this frame
+  float currentFreq = prevNoteFreq + portamentoStep; // Calculate the current frequency based on the previous frequency and the portamento step
+  return currentFreq;
+}
+void updateVoice(Voice& voice, float deltaTime) {
+  // Calculate the current frequency based on the current note, MIDI pitch bend, and LFO value
+  float currentFreq = getFrequencyForMidiNote(
+    voice.currentNote + voice.currentPitchBend, 
+    voice.lfoValue
+  );
+
+  // If portamento is enabled, calculate the portamento shift
+  if (voice.portamentoEnabled) {
+    float prevFreq = voice.prevNoteFreq;
+    if (prevFreq != currentFreq) {
+      currentFreq = calculatePortamentoShift(prevFreq, currentFreq, voice.portamentoSpeed, deltaTime);
+    }
+  }
+
+  // Output the frequency for the voice to the appropriate AD9833
+  // ...
+
+  // Update the fields for the voice
+  voice.prevNote = voice.currentNote;
+  voice.prevNoteFreq = currentFreq;
+}
+
+*/
 
 // ------------------------ Voice buffer subroutines 
 
