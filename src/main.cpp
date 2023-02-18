@@ -30,7 +30,7 @@ uint8_t knob[17];
 int midiNoteVoltage = 0;
 
 // ----------------------------- DCO vars
-const int FSYNC0 = 9;                 
+const int FSYNC_PINS[] = {9, 10};
 #define SPI_CLOCK_SPEED 7500000                     // 7.5 MHz SPI clock - this works ALMOST without clock ticks
 unsigned long MCLK = 25000000;      
 
@@ -92,10 +92,9 @@ void AD9833setFrequency(int board, long frequency) {
   long FreqReg = (frequency * pow(2, 28)) / MCLK;   // Data sheet Freq Calc formula
   int MSB = (int)((FreqReg & 0xFFFC000) >> 14);     // only lower 14 bits are used for data
   int LSB = (int)(FreqReg & 0x3FFF);
-  char tempBoard = "FSYNC" + board;
-
+  int FSYNC_SET_PIN = FSYNC_PINS[board];
   SPI.beginTransaction(SPISettings(SPI_CLOCK_SPEED, MSBFIRST, SPI_MODE2));
-  digitalWrite(tempBoard, LOW);                         // set FSYNC low before writing to AD9833 registers
+  digitalWrite(FSYNC_SET_PIN, LOW);                         // set FSYNC low before writing to AD9833 registers
 
   LSB |= 0x4000;                                    // DB 15=0, DB14=1
   MSB |= 0x4000;                                    // DB 15=0, DB14=1
@@ -105,16 +104,16 @@ void AD9833setFrequency(int board, long frequency) {
   SPI.transfer16(0x2002);                           // take AD9833 out of reset and output triangle wave (DB8=0)
   delayMicroseconds(2);                             // Settle time? Doesn't make much difference …
 
-  digitalWrite(tempBoard, HIGH);                        // write done, set FSYNC high
+  digitalWrite(FSYNC_SET_PIN, HIGH);                        // write done, set FSYNC high
   SPI.endTransaction();
 }
 
 void AD9833Reset(int AD_board) {
   SPI.beginTransaction(SPISettings(SPI_CLOCK_SPEED, MSBFIRST, SPI_MODE2));
-  char tempPin = "FSYNC" + AD_board;
-  digitalWrite(tempPin, LOW);
+  int FSYNC_RESET_PIN = FSYNC_PINS[AD_board];
+  digitalWrite(FSYNC_RESET_PIN, LOW);
   SPI.transfer16(0x2100);
-  digitalWrite(tempPin, HIGH);
+  digitalWrite(FSYNC_RESET_PIN, HIGH);
 }
 
 // ------------------------ Read LFO pin and change note pitch accordingly
@@ -179,6 +178,7 @@ void noteOn(uint8_t midiNote, uint8_t velocity) {
     for (int i = 0; i < NUM_VOICES; i++) {
       if (voices[i].noteOn) {
         numPlayingVoices++;
+        AD9833setFrequency(i, noteFrequency[voices[i].midiNote]);
       }
     }
     if (numPlayingVoices >= NUM_VOICES) {
@@ -208,6 +208,11 @@ void noteOn(uint8_t midiNote, uint8_t velocity) {
   voices[voice].velocity = velocity;
   voices[voice].noteFreq = noteFrequency[voices[voice].midiNote];
   //updateDCO(noteFrequency[voices[voice].midiNote]);
+  for (int i = 0; i < NUM_VOICES; i++) {
+    if (voices[i].noteOn) {
+      AD9833setFrequency(i, noteFrequency[voices[i].midiNote]);
+    }
+  }
 }
 
 void noteOff(uint8_t midiNote) {
@@ -257,9 +262,9 @@ void setup() {
   MIDI.begin(MIDI_CHANNEL);
   SPI.begin();
   for (int i = 0; i < NUM_VOICES; i++) {
-    char initPin = "FSYNC" + i;
-    pinMode(initPin, OUTPUT);                           // Prepare FSYNC pin for output
-    digitalWrite(initPin, HIGH); 
+    int FSYNC_PIN_INIT = FSYNC_PINS[i];
+    pinMode(FSYNC_PIN_INIT, OUTPUT);                           // Prepare FSYNC pin for output
+    digitalWrite(FSYNC_PIN_INIT, HIGH); 
     AD9833Reset(i);
     }                     // Set it high for good measure
 }
