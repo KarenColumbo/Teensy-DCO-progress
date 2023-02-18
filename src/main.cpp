@@ -26,6 +26,8 @@ uint8_t knobNumber = 0;
 uint8_t knobValue = 0;
 uint8_t knob[17];
 int midiNoteVoltage = 0;
+uint8_t portaSpeed = 0;
+
 
 // ----------------------------- DCO vars
 const int FSYNC_PINS[4] = {6, 7, 8, 9};
@@ -63,8 +65,10 @@ const unsigned int noteVolt[73] = {
     bool keyDown;
     uint8_t velocity;
     float prevNoteFreq;
+    float prevNoteAge;
     uint16_t noteVolts;
     float noteFreq;
+    float portaDiff;
   };
 
 Voice voices[NUM_VOICES];
@@ -78,8 +82,10 @@ void initializeVoices() {
     voices[i].keyDown = false;
     voices[i].velocity = 0;
     voices[i].prevNoteFreq = 0;
+    voices[i].prevNoteAge = 0;
     voices[i].noteVolts = 0;
     voices[i].noteFreq = 0;
+    voices[i].portaDiff = 0;
     }
 }
 
@@ -219,13 +225,21 @@ void bendNotes() {
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //+++++++++++++++++++++++ PORTAMENTO & VOICE UPDATE ++++++++++++
 //*****************************************************************
-/*float calculatePortamentoShift(float prevNoteFreq, float noteFreq, float portSpeed, float deltaTime) {
-  float portamentoRange = abs(noteFreq - prevNoteFreq); // Calculate the total range of the portamento effect
-  float portamentoStep = portamentoRange * (portSpeed * deltaTime); // Calculate the step size for this frame
-  float currentFreq = prevNoteFreq + portamentoStep; // Calculate the current frequency based on the previous frequency and the portamento step
-  return currentFreq;
+float calculatePortaShift(int voicenumber) {
+  float deltaTime = (voices[voicenumber].noteAge - voices[voicenumber].prevNoteAge) / 1000.0f; // Calculate the elapsed time since the previous note event
+  
+  // Check if portamento is enabled and calculate the step size accordingly
+  if (portaTime > 0) {
+    float portaTimeMs = 500.0f + (portaTime / 127.0f) * 4500.0f; // Calculate the portamento time in milliseconds
+    float portaStep = voices[voicenumber].portaDiff * (portaSpeed * deltaTime / portaTimeMs); // Calculate the step size for this frame
+    return voices[voicenumber].noteFreq + portaStep; // Calculate the current frequency based on the previous frequency and the portamento step
+  } else {
+    return voices[voicenumber].noteFreq; // Return the current frequency without portamento
+  }
 }
-void updateVoice(Voice& voice, float deltaTime) {
+
+
+/*void updateVoice(Voice& voice, float deltaTime) {
   // Calculate the current frequency based on the current note, MIDI pitch bend, and LFO value
   float currentFreq = getFrequencyForMidiNote(
     voice.currentNote + voice.currentPitchBend, 
@@ -311,7 +325,7 @@ void noteOn(uint8_t midiNote, uint8_t velocity) {
         }
       }
     }
-    voices[voice].prevNote = voices[voice].midiNote;
+    voices[voice].prevNoteFreq = voices[voice].noteFreq;
   }
   voices[voice].noteAge = millis();
   voices[voice].midiNote = midiNote;
@@ -319,6 +333,7 @@ void noteOn(uint8_t midiNote, uint8_t velocity) {
   voices[voice].keyDown = true;
   voices[voice].velocity = velocity;
   voices[voice].noteFreq = noteFrequency[voices[voice].midiNote];
+  voices[voice].portaDiff = voices[voice].noteFreq - voices[voice].prevNoteFreq;
   bendNotes();
   
 
@@ -336,6 +351,8 @@ void noteOff(uint8_t midiNote) {
   if (voice != -1) {
     voices[voice].keyDown = false;
     if (susOn == false) {
+      voices[voice].prevNoteFreq = voices[voice].noteFreq;
+      voices[voice].prevNoteAge = voices[voice].noteAge;
       voices[voice].noteOn = false;
       voices[voice].velocity = 0;
       voices[voice].midiNote = 0;
