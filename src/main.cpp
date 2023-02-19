@@ -151,10 +151,10 @@ float calculatePortaShift() {
     float deltaTime = (voices[i].noteAge - voices[i].prevNoteAge) / 1000.0f; // Calculate the elapsed time since the previous note event
     // Check if portamento is enabled and calculate the step size accordingly
     if (portaSpeed > 0) {
-      float portaSpeedMs = 500.0f + (portaSpeed / 127.0f) * 4500.0f; // Calculate the portamento time in milliseconds
-      float portaStep = voices[i].portaDiff * (portaSpeed * deltaTime / portaSpeedMs); // Calculate the step size for this frame
+      float portaTime = 5000.0f - (knobValue / 126.0f) * 4500.0f; // Calculate the portamento time in milliseconds based on knob value
+      float portaStep = voices[i].portaDiff * (deltaTime / portaTime); // Calculate the step size for this frame
       voices[i].noteFreq = voices[i].noteFreq + portaStep; // Calculate the current frequency based on the previous frequency and the portamento step
-    } 
+    }
   }
 }
 
@@ -263,11 +263,14 @@ void sustainNotes() {
 
 MIDI_CREATE_INSTANCE(HardwareSerial, Serial1,  MIDI);
 
+IntervalTimer LFOtimer; // create an IntervalTimer object
+
 // ************************************************
 // ******************** SETUP *********************
 // ************************************************
 
 void setup() {
+  LFOtimer.begin(calculatePortaShift, 2000); // call calculatePortaShift every 2ms
 	Serial.begin(9600);
   MIDI.begin(MIDI_CHANNEL);
   SPI.begin();
@@ -352,7 +355,8 @@ void loop() {
       knobNumber = MIDI.getData1();
       knobValue = MIDI.getData2();
       if (knobNumber == 73) {
-        portaSpeed = knobValue;
+        float portamentoSpeed = map(knobValue, 0, 127, 5.0f, 0.5f) / 12.0f; // Calculate portamento speed in seconds per semitone
+        portaSpeed = 1.0f / portamentoSpeed; // Calculate the portamento speed in octaves per second
       }
     }
   }
@@ -360,5 +364,7 @@ void loop() {
   // ****************************************************************
   // *************************** OUTPUT *****************************
   // ****************************************************************
+
+  bendNotes();
   
 }
