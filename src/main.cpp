@@ -100,7 +100,7 @@ void debugPrint(int voice) {
 // **************************** DCO routines *****************************
 // ***********************************************************************
 
-// CHANNEL0
+// CHANNEL0 - dual version in Test/Snippets
 void AD9833setFrequency(int board, long frequency, int deformfactor) {
   long FreqReg0 = (frequency * pow(2, 28)) / MCLK;   // Data sheet Freq Calc formula
   int MSB0 = (int)((FreqReg0 & 0xFFFC000) >> 14);     // only lower 14 bits are used for data
@@ -142,8 +142,6 @@ void bendNotes() {
     //debugPrint(i);
   }
 }
-
-// -------------------- ADC
 
 // -------------------- Portamento
 float calculatePortaShift() {
