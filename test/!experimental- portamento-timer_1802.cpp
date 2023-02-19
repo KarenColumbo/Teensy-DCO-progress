@@ -69,6 +69,7 @@ const unsigned int noteVolt[73] = {
     uint16_t noteVolts;
     float noteFreq;
     float portaDiff;
+    float portaStep;
   };
 
 Voice voices[NUM_VOICES];
@@ -86,6 +87,7 @@ void initializeVoices() {
     voices[i].noteVolts = 0;
     voices[i].noteFreq = 0;
     voices[i].portaDiff = 0;
+    voices[i].portaStep = 0;
     }
 }
 
@@ -219,16 +221,16 @@ void bendNotes() {
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //+++++++++++++++++++++++ PORTAMENTO & VOICE UPDATE ++++++++++++
 //*****************************************************************
-float calculatePortaShift(int voicenumber) {
-  float deltaTime = (voices[voicenumber].noteAge - voices[voicenumber].prevNoteAge) / 1000.0f; // Calculate the elapsed time since the previous note event
-  
-  // Check if portamento is enabled and calculate the step size accordingly
-  if (portaTime > 0) {
-    float portaTimeMs = 500.0f + (portaTime / 127.0f) * 4500.0f; // Calculate the portamento time in milliseconds
-    float portaStep = voices[voicenumber].portaDiff * (portaSpeed * deltaTime / portaTimeMs); // Calculate the step size for this frame
-    return voices[voicenumber].noteFreq + portaStep; // Calculate the current frequency based on the previous frequency and the portamento step
+float calculatePortaShift() {
+  for (int i = 0; i < NUM_VOICES; i++) {
+    float deltaTime = (voices[i].noteAge - voices[i].prevNoteAge) / 1000.0f; // Calculate the elapsed time since the previous note event
+    // Check if portamento is enabled and calculate the step size accordingly
+    if (portaSpeed > 0) {
+    float portaSpeedMs = 500.0f + (portaSpeed / 127.0f) * 4500.0f; // Calculate the portamento time in milliseconds
+    float portaStep = voices[i].portaDiff * (portaSpeed * deltaTime / portaSpeedMs); // Calculate the step size for this frame
+    return voices[i].noteFreq + portaStep; // Calculate the current frequency based on the previous frequency and the portamento step
   } else {
-    return voices[voicenumber].noteFreq; // Return the current frequency without portamento
+    return voices[i].noteFreq; // Return the current frequency without portamento
   }
 }
 
