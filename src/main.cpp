@@ -6,11 +6,11 @@
 #include <SoftwareSerial.h>
 #include <SPI.h>
 
-#define NUM_VOICES 4
+#define NUM_VOICES 8
 #define MIDI_CHANNEL 1
 #define DETUNE 0
 #define PITCH_BEND_RANGE 2
-#define LFO_PIN 40
+//#define LFO_PIN 40
 
 float pitchBenderValue = 8192;
 float bendFactor = 0;
@@ -28,7 +28,7 @@ uint8_t knob[17];
 int midiNoteVoltage = 0;
 
 // ----------------------------- DCO vars
-const int FSYNC_PINS[4] = {6, 7, 8, 9};
+const int FSYNC_PINS[8] = {2, 3, 4, 5, 6, 7, 8, 9};
 #define SPI_CLOCK_SPEED 7500000                     // 7.5 MHz SPI clock - this works ALMOST without clock ticks
 unsigned long MCLK = 25000000;      
 
@@ -107,13 +107,13 @@ void debugPrint(int voice) {
   //Serial.println(bendFactor);
 }
 
-/*void AD9833setFrequency(int board, long frequency0, long frequency1) {
-  long FreqReg0 = (frequency0 * pow(2, 28)) / MCLK;   // Data sheet Freq Calc formula
+void AD9833setFrequency(int board, long frequency) {
+  long FreqReg0 = (frequency * pow(2, 28)) / MCLK;   // Data sheet Freq Calc formula
   int MSB0 = (int)((FreqReg0 & 0xFFFC000) >> 14);     // only lower 14 bits are used for data
   int LSB0 = (int)(FreqReg0 & 0x3FFF);
-  long FreqReg1 = (frequency1 * pow(2, 28)) / MCLK;
-  int MSB1 = (int)((FreqReg1 & 0xFFFC000) >> 14);     // only lower 14 bits are used for data
-  int LSB1 = (int)(FreqReg1 & 0x3FFF);
+  //long FreqReg1 = (frequency1 * pow(2, 28)) / MCLK;
+  //int MSB1 = (int)((FreqReg1 & 0xFFFC000) >> 14);     // only lower 14 bits are used for data
+  //int LSB1 = (int)(FreqReg1 & 0x3FFF);
   
   int FSYNC_SET_PIN = FSYNC_PINS[board];
   SPI.beginTransaction(SPISettings(SPI_CLOCK_SPEED, MSBFIRST, SPI_MODE2));
@@ -124,12 +124,12 @@ void debugPrint(int voice) {
   SPI.transfer16(LSB0);                              // write lower 16 bits to AD9833 registers
   SPI.transfer16(MSB0);                              // write upper 16 bits to AD9833 registers
 
-  if (frequency1 > 0) {
-    LSB1 |= 0x4000;                                    // DB 15=0, DB14=1
-    MSB1 |= 0x4000;                                    // DB 15=0, DB14=1
-    SPI.transfer16(LSB1);                              // write lower 16 bits to AD9833 registers
-    SPI.transfer16(MSB1);                              // write upper 16 bits to AD9833 registers
-  }
+  //if (frequency1 > 0) {
+  //  LSB1 |= 0x4000;                                    // DB 15=0, DB14=1
+  //  MSB1 |= 0x4000;                                    // DB 15=0, DB14=1
+  //  SPI.transfer16(LSB1);                              // write lower 16 bits to AD9833 registers
+  //  SPI.transfer16(MSB1);                              // write upper 16 bits to AD9833 registers
+  //}
   
   SPI.transfer16(0xC000);                           // write phase register
   SPI.transfer16(0x2002);                           // take AD9833 out of reset and output triangle wave (DB8=0)
@@ -137,7 +137,8 @@ void debugPrint(int voice) {
 
   digitalWrite(FSYNC_SET_PIN, HIGH);                        // write done, set FSYNC high
   SPI.endTransaction();
-}*/
+}
+/*
 void AD9833setFrequency(int board, long frequency0, long frequency1) {
   long FreqReg0 = (frequency0 * pow(2, 28)) / MCLK;   // Data sheet Freq Calc formula
   int MSB0 = (int)((FreqReg0 & 0xFFFC000) >> 14);     // only lower 14 bits are used for data
@@ -171,6 +172,7 @@ void AD9833setFrequency(int board, long frequency0, long frequency1) {
   digitalWrite(FSYNC_SET_PIN, HIGH);                        // write done, set FSYNC high
   SPI.endTransaction();
 }
+*/
 
 
 
@@ -188,7 +190,7 @@ void bendNotes() {
     bendFactor = map(pitchBenderValue, 0, 16383, -PITCH_BEND_RANGE, PITCH_BEND_RANGE);
     if (voices[i].noteOn == true) {
       voices[i].noteFreq = noteFrequency[voices[i].midiNote] * pow(ratio, bendFactor);
-      AD9833setFrequency(i, voices[i].noteFreq, -1);
+      AD9833setFrequency(i, voices[i].noteFreq);
     }
     debugPrint(i);
   }
@@ -240,7 +242,7 @@ void noteOn(uint8_t midiNote, uint8_t velocity) {
     for (int i = 0; i < NUM_VOICES; i++) {
       if (voices[i].noteOn) {
         numPlayingVoices++;
-        AD9833setFrequency(i, noteFrequency[voices[i].midiNote], -1);
+        AD9833setFrequency(i, noteFrequency[voices[i].midiNote]);
       }
     }
     if (numPlayingVoices >= NUM_VOICES) {
