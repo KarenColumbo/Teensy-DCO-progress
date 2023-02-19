@@ -5,27 +5,38 @@
 #include <MIDI.h>
 #include <SoftwareSerial.h>
 #include <SPI.h>
+#include <ADC.h>
 
 #define NUM_VOICES 8
 #define MIDI_CHANNEL 1
 #define DETUNE 0
 #define PITCH_BEND_RANGE 2
-//#define LFO_PIN 40
+const int ADC_PIN = A0;
+const float ADC_MAX_VOLTAGE = 3.0;
+const float LFO_DETUNE_RANGE = 5.0;
+
+float loopstart = 0;
+float loopend = 0;
+float loopTime = 0;
+float maxLoopTime = 0;
+
 
 float pitchBenderValue = 8192;
 float bendFactor = 0;
 bool susOn = false;
 uint8_t midiNote = 0;
 uint8_t velocity = 0;
-uint8_t aftertouch = 0;
+float aftertouch = 0;
 uint8_t modulationWheel = 0;
 uint8_t ccNumber = 0;
 uint8_t ccValue = 0;
 uint8_t sustainPedal = 0;
 uint8_t knobNumber = 0;
 uint8_t knobValue = 0;
-uint8_t knob[17];
+uint8_t knobArray[17];
 int midiNoteVoltage = 0;
+float Deform = 0;
+float LFO_Detune = 0.0000;
 
 // ----------------------------- DCO vars
 const int FSYNC_PINS[8] = {2, 3, 4, 5, 6, 7, 8, 9};
@@ -96,6 +107,8 @@ void debugPrint(int voice) {
   Serial.print(noteFrequency[voices[voice].midiNote]);
   Serial.print(" -> ");
   Serial.print(voices[voice].noteFreq);
+  Serial.print(" * ");
+  Serial.print(LFO_Detune);
   Serial.print("\tOut: ");
   Serial.print(voices[voice].noteFreq);
   Serial.print("\tkeyDown: ");
@@ -107,14 +120,12 @@ void debugPrint(int voice) {
   //Serial.println(bendFactor);
 }
 
-void AD9833setFrequency(int board, long frequency) {
+// CHANNEL0
+void AD9833setFrequency(int board, long frequency, int deformfactor) {
   long FreqReg0 = (frequency * pow(2, 28)) / MCLK;   // Data sheet Freq Calc formula
   int MSB0 = (int)((FreqReg0 & 0xFFFC000) >> 14);     // only lower 14 bits are used for data
   int LSB0 = (int)(FreqReg0 & 0x3FFF);
-  //long FreqReg1 = (frequency1 * pow(2, 28)) / MCLK;
-  //int MSB1 = (int)((FreqReg1 & 0xFFFC000) >> 14);     // only lower 14 bits are used for data
-  //int LSB1 = (int)(FreqReg1 & 0x3FFF);
-  
+   
   int FSYNC_SET_PIN = FSYNC_PINS[board];
   SPI.beginTransaction(SPISettings(SPI_CLOCK_SPEED, MSBFIRST, SPI_MODE2));
   digitalWrite(FSYNC_SET_PIN, LOW);                         // set FSYNC low before writing to AD9833 registers
@@ -123,58 +134,50 @@ void AD9833setFrequency(int board, long frequency) {
   MSB0 |= 0x4000;                                    // DB 15=0, DB14=1
   SPI.transfer16(LSB0);                              // write lower 16 bits to AD9833 registers
   SPI.transfer16(MSB0);                              // write upper 16 bits to AD9833 registers
-
-  //if (frequency1 > 0) {
-  //  LSB1 |= 0x4000;                                    // DB 15=0, DB14=1
-  //  MSB1 |= 0x4000;                                    // DB 15=0, DB14=1
-  //  SPI.transfer16(LSB1);                              // write lower 16 bits to AD9833 registers
-  //  SPI.transfer16(MSB1);                              // write upper 16 bits to AD9833 registers
-  //}
-  
   SPI.transfer16(0xC000);                           // write phase register
   SPI.transfer16(0x2002);                           // take AD9833 out of reset and output triangle wave (DB8=0)
+
   delayMicroseconds(2);                             // Settle time? Doesn't make much difference …
 
   digitalWrite(FSYNC_SET_PIN, HIGH);                        // write done, set FSYNC high
   SPI.endTransaction();
 }
+
 /*
-void AD9833setFrequency(int board, long frequency0, long frequency1) {
-  long FreqReg0 = (frequency0 * pow(2, 28)) / MCLK;   // Data sheet Freq Calc formula
+// DUAL CHANNEL
+void AD9833setFrequency(int board, long frequency, int deformfactor) {
+  long FreqReg0 = (frequency * pow(2, 28)) / MCLK;   // Data sheet Freq Calc formula
+  long FreqReg1 = (frequency * pow(2, 28)) / MCLK;   // Data sheet Freq Calc formula
   int MSB0 = (int)((FreqReg0 & 0xFFFC000) >> 14);     // only lower 14 bits are used for data
   int LSB0 = (int)(FreqReg0 & 0x3FFF);
-  int MSB1, LSB1;  // declare here
-  if (frequency1 > 0) {
-    long FreqReg1 = (frequency1 * pow(2, 28)) / MCLK;
-    MSB1 = (int)((FreqReg1 & 0xFFFC000) >> 14);     // only lower 14 bits are used for data
-    LSB1 = (int)(FreqReg1 & 0x3FFF);
-  }
+  int MSB1 = (int)((FreqReg1 & 0xFFFC000) >> 14);     // only lower 14 bits are used for data
+  int LSB1 = (int)(FreqReg1 & 0x3FFF);
+  
   int FSYNC_SET_PIN = FSYNC_PINS[board];
   SPI.beginTransaction(SPISettings(SPI_CLOCK_SPEED, MSBFIRST, SPI_MODE2));
   digitalWrite(FSYNC_SET_PIN, LOW);                         // set FSYNC low before writing to AD9833 registers
 
   LSB0 |= 0x4000;                                    // DB 15=0, DB14=1
   MSB0 |= 0x4000;                                    // DB 15=0, DB14=1
+  LSB1 |= 0x4000;                                    // DB 15=0, DB14=1
+  MSB1 |= 0x4000;                                    // DB 15=0, DB14=1
   SPI.transfer16(LSB0);                              // write lower 16 bits to AD9833 registers
   SPI.transfer16(MSB0);                              // write upper 16 bits to AD9833 registers
-
-  if (frequency1 > 0) {
-    LSB1 |= 0x4000;                                    // DB 15=0, DB14=1
-    MSB1 |= 0x4000;                                    // DB 15=0, DB14=1
-    SPI.transfer16(LSB1);                              // write lower 16 bits to AD9833 registers
-    SPI.transfer16(MSB1);                              // write upper 16 bits to AD9833 registers
-  }
-  
   SPI.transfer16(0xC000);                           // write phase register
   SPI.transfer16(0x2002);                           // take AD9833 out of reset and output triangle wave (DB8=0)
+
+  SPI.transfer16(0x2000);                            // Select DAC B (DB13 = 1), Control bits = 0
+  SPI.transfer16(LSB1);                              // write lower 16 bits to AD9833 registers
+  SPI.transfer16(MSB1);                              // write upper 16 bits to AD9833 registers
+  SPI.transfer16(0xC000);                           // write phase register
+  SPI.transfer16(deformForm[deformfactor]);         // take AD9833 out of reset and output triangle wave (DB8=0)
+
   delayMicroseconds(2);                             // Settle time? Doesn't make much difference …
 
   digitalWrite(FSYNC_SET_PIN, HIGH);                        // write done, set FSYNC high
   SPI.endTransaction();
 }
 */
-
-
 
 void AD9833Reset(int AD_board) {
   SPI.beginTransaction(SPISettings(SPI_CLOCK_SPEED, MSBFIRST, SPI_MODE2));
@@ -187,29 +190,27 @@ void AD9833Reset(int AD_board) {
 void bendNotes() {
   for (int i = 0; i < NUM_VOICES; i++) {
     float ratio = pow(2, 1 / 12.0);
-    bendFactor = map(pitchBenderValue, 0, 16383, -PITCH_BEND_RANGE, PITCH_BEND_RANGE);
+    bendFactor = map(pitchBenderValue, 0, 16383, -PITCH_BEND_RANGE, PITCH_BEND_RANGE) + LFO_Detune;
     if (voices[i].noteOn == true) {
       voices[i].noteFreq = noteFrequency[voices[i].midiNote] * pow(ratio, bendFactor);
-      AD9833setFrequency(i, voices[i].noteFreq);
+      AD9833setFrequency(i, voices[i].noteFreq, Deform);
     }
-    debugPrint(i);
+    //debugPrint(i);
   }
 }
 
-// ------------------------ Read LFO pin and change note pitch accordingly
-/*void applyLFO(float& freq) {
-  float lfoDepth = (analogRead(LFO_PIN) / 4095.0 * 3.0) / 12.0;
-  freq *= pow(2.0, lfoDepth / 12.0); 
-}*/
+/*
+void readADCAndBendNotes() {
+  int adcValue = analogRead(ADC_PIN);
+  float voltage = (adcValue / 4095.0) * ADC_MAX_VOLTAGE; // convert ADC value to voltage
+  LFO_Detune = map(voltage, 0, ADC_MAX_VOLTAGE, -LFO_DETUNE_RANGE, LFO_DETUNE_RANGE);
+  //bendNotes();
+}
+*/
 
-// ------------------------ Voice buffer subroutines 
-
-/*void updateDCO(float updateFreq) {
-  MCP.digitalWrite(GPA0, LOW); // Set FSYNC pin LOW
-  AD.setFrequency(MD_AD9833::CHAN_0, updateFreq);
-  MCP.digitalWrite(GPA0, HIGH); // Set FSYNC pin HIGH
-  Serial.println(updateFreq);
-}*/
+// ***********************************************************************
+// **************************** VOICE routines *****************************
+// ***********************************************************************
 
 int findOldestVoice() {
   int oldestVoice = 0;
@@ -242,7 +243,7 @@ void noteOn(uint8_t midiNote, uint8_t velocity) {
     for (int i = 0; i < NUM_VOICES; i++) {
       if (voices[i].noteOn) {
         numPlayingVoices++;
-        AD9833setFrequency(i, noteFrequency[voices[i].midiNote]);
+        AD9833setFrequency(i, noteFrequency[voices[i].midiNote], Deform);
       }
     }
     if (numPlayingVoices >= NUM_VOICES) {
@@ -272,18 +273,9 @@ void noteOn(uint8_t midiNote, uint8_t velocity) {
   voices[voice].velocity = velocity;
   voices[voice].noteFreq = noteFrequency[voices[voice].midiNote];
   bendNotes();
-  
-
-  /*
-  //updateDCO(noteFrequency[voices[voice].midiNote]);
-  for (int i = 0; i < NUM_VOICES; i++) {
-    if (voices[i].noteOn) {
-      AD9833setFrequency(i, voices[i].noteFreq);  
-    }
-  } */
 }
-
-void noteOff(uint8_t midiNote) {
+  
+  void noteOff(uint8_t midiNote) {
   int voice = findVoice(midiNote);
   if (voice != -1) {
     voices[voice].keyDown = false;
@@ -329,6 +321,9 @@ void setup() {
 	Serial.begin(9600);
   MIDI.begin(MIDI_CHANNEL);
   SPI.begin();
+  //analogReadResolution(12);  // set ADC resolution to 12 bits (0-4095)
+  //analogReference(INTERNAL1V2);// set internal reference voltage to 1.2V
+  //pinMode(A0, INPUT_PULLUP);
   for (int i = 0; i < NUM_VOICES; i++) {
     int FSYNC_PIN_INIT = FSYNC_PINS[i];
     pinMode(FSYNC_PIN_INIT, OUTPUT);                           // Prepare FSYNC pin for output
@@ -343,6 +338,8 @@ void setup() {
 
 void loop() {
 
+  loopstart = micros();
+
   if (MIDI.read()) {
   
     // -------------------- Note On
@@ -351,7 +348,7 @@ void loop() {
       velocity = MIDI.getData2();
       noteOn(midiNote, velocity);
        for (int i = 0; i < NUM_VOICES; i++) {
-            debugPrint(i);
+        //    debugPrint(i);
         }
       
     }
@@ -360,8 +357,8 @@ void loop() {
     if (MIDI.getType() == midi::NoteOff && MIDI.getChannel() == MIDI_CHANNEL) {
       midiNote = MIDI.getData1();
         noteOff(midiNote);
-         for (int i = 0; i < NUM_VOICES; i++) {
-            debugPrint(i);
+          for (int i = 0; i < NUM_VOICES; i++) {
+          //  debugPrint(i);
         }
     }
 
@@ -373,7 +370,8 @@ void loop() {
 
     // ------------------ Aftertouch 
     if (MIDI.getType() == midi::AfterTouchChannel && MIDI.getChannel() == MIDI_CHANNEL) {
-      aftertouch = MIDI.getData1();
+      int aftertouchVal =  MIDI.getData1();
+      aftertouch = map(aftertouchVal, 0, 127, 100, 100 * LFO_DETUNE_RANGE) / 100;
     }
 
     // ------------------ Modwheel 
@@ -388,15 +386,15 @@ void loop() {
         susOn = true;
         sustainNotes();
         for (int i = 0; i < NUM_VOICES; i++) {
-            debugPrint(i);
+          //  debugPrint(i);
         }
       } 
       if (sustainPedal <= 63) {
         susOn = false;
         unsustainNotes();
-        Serial.print("SusOff");
+        //Serial.print("SusOff");
         for (int i = 0; i < NUM_VOICES; i++) {
-            debugPrint(i);
+          //  debugPrint(i);
         }
       }
     }
@@ -405,8 +403,8 @@ void loop() {
     if (MIDI.getType() == midi::ControlChange && MIDI.getChannel() == MIDI_CHANNEL) {
       knobNumber = MIDI.getData1();
       knobValue = MIDI.getData2();
-      if (knobNumber >69 && knobNumber <88) {
-        knob[knobNumber - 87] = knobValue;
+      if (knobNumber == 73) {
+        Deform = (map(knobValue, 0, 127, 100, 200) / 100.0) - 1;
       }
     }
   }
@@ -415,6 +413,20 @@ void loop() {
   // *************************** OUTPUT *****************************
   // ****************************************************************
   
-
+//readADCAndBendNotes();
+loopend = micros();
+  loopTime = loopend - loopstart;
+  if (loopTime > maxLoopTime) {
+    maxLoopTime = loopTime;
+  }
+  
+  // print max loop time every 10 seconds
+  static unsigned long lastPrintTime = 0;
+  if (millis() - lastPrintTime >= 10000) {
+    Serial.print("Max loop time: ");
+    Serial.print(maxLoopTime);
+    Serial.println(" us");
+    lastPrintTime = millis();
+  }
 
 }
