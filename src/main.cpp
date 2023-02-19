@@ -43,19 +43,18 @@ uint8_t portaSpeed = 0;
 const int FSYNC_PINS[8] = {2, 3, 4, 5, 6, 7, 8, 9};
 #define SPI_CLOCK_SPEED 7500000                     // 7.5 MHz SPI clock - this works ALMOST without clock ticks
 unsigned long MCLK = 25000000;      
-
-  struct Voice {
-    unsigned long noteAge;
-    uint8_t midiNote;
-    bool noteOn;
-    bool sustained;
-    bool keyDown;
-    uint8_t velocity;
-    uint8_t prevNote;
-    uint16_t noteVolts;
-    float noteFreq;
-    float portaDiff;
-  };
+struct Voice {
+  unsigned long noteAge;
+  uint8_t midiNote;
+  bool noteOn;
+  bool sustained;
+  bool keyDown;
+  uint8_t velocity;
+  uint8_t prevNote;
+  uint16_t noteVolts;
+  float noteFreq;
+  float portaDiff;
+};
 
 Voice voices[NUM_VOICES];
 
@@ -105,21 +104,17 @@ void AD9833setFrequency(int board, long frequency, int deformfactor) {
   long FreqReg0 = (frequency * pow(2, 28)) / MCLK;   // Data sheet Freq Calc formula
   int MSB0 = (int)((FreqReg0 & 0xFFFC000) >> 14);     // only lower 14 bits are used for data
   int LSB0 = (int)(FreqReg0 & 0x3FFF);
-   
   int FSYNC_SET_PIN = FSYNC_PINS[board];
   SPI.beginTransaction(SPISettings(SPI_CLOCK_SPEED, MSBFIRST, SPI_MODE2));
-  digitalWrite(FSYNC_SET_PIN, LOW);                         // set FSYNC low before writing to AD9833 registers
-
-  LSB0 |= 0x4000;                                    // DB 15=0, DB14=1
-  MSB0 |= 0x4000;                                    // DB 15=0, DB14=1
-  SPI.transfer16(LSB0);                              // write lower 16 bits to AD9833 registers
-  SPI.transfer16(MSB0);                              // write upper 16 bits to AD9833 registers
-  SPI.transfer16(0xC000);                           // write phase register
-  SPI.transfer16(0x2002);                           // take AD9833 out of reset and output triangle wave (DB8=0)
-
-  delayMicroseconds(2);                             // Settle time? Doesn't make much difference …
-
-  digitalWrite(FSYNC_SET_PIN, HIGH);                        // write done, set FSYNC high
+  digitalWrite(FSYNC_SET_PIN, LOW);               // set FSYNC low before writing to AD9833 registers
+  LSB0 |= 0x4000;                               // DB 15=0, DB14=1
+  MSB0 |= 0x4000;                                // DB 15=0, DB14=1
+  SPI.transfer16(LSB0);                      // write lower 16 bits to AD9833 registers
+  SPI.transfer16(MSB0);                          // write upper 16 bits to AD9833 registers
+  SPI.transfer16(0xC000);                      // write phase register
+  SPI.transfer16(0x2002);                      // take AD9833 out of reset and output triangle  (DB8=0)
+  //delayMicroseconds(2);                        // Settle time? Doesn't make much difference …
+  digitalWrite(FSYNC_SET_PIN, HIGH);             // write done, set FSYNC high
   SPI.endTransaction();
 }
 
@@ -131,6 +126,7 @@ void AD9833Reset(int AD_board) {
   digitalWrite(FSYNC_RESET_PIN, HIGH);
 }
 
+/* ***+ INCLUDED IN updateVoices()!!
 void bendNotes() {
   for (int i = 0; i < NUM_VOICES; i++) {
     float ratio = pow(2, 1 / 12.0);
@@ -139,9 +135,9 @@ void bendNotes() {
       voices[i].noteFreq = noteFrequency[voices[i].midiNote] * pow(ratio, bendFactor);
       AD9833setFrequency(i, voices[i].noteFreq, Deform);
     }
-    //debugPrint(i);
   }
 }
+*/
 
 // -------------------- Portamento
 float calculatePortaShift() {
@@ -156,23 +152,30 @@ float calculatePortaShift() {
   }
 }
 
+// ***********************************************************************
+// ************************* MAIN VOICES UPDATE **************************
+// ***********************************************************************
+
 void updateVoices() {
   float deltaTime = 0.001f; // Fixed time interval of 1 millisecond
-  
   for (int i = 0; i < NUM_VOICES; i++) {
     if (voices[i].noteOn) {
       float currentFreq = voices[i].noteFreq;
-      // If portamento is enabled, calculate the portamento shift
+      // If portamento is enabled, calculate portamento shift
       if (portaSpeed > 0 && voices[i].prevNoteFreq != currentFreq) {
         currentFreq = calculatePortaShift(i);
       }
-      
-      // Update the fields for the voice
+      // Update voice
       voices[i].prevNoteFreq = currentFreq;
       voices[i].prevNoteAge = voices[i].noteAge;
     }
+    float ratio = pow(2, 1 / 12.0);
+    bendFactor = map(pitchBenderValue, 0, 16383, -PITCH_BEND_RANGE, PITCH_BEND_RANGE) + LFO_Detune;
+    if (voices[i].noteOn == true) {
+      voices[i].noteFreq = noteFrequency[voices[i].midiNote] * pow(ratio, bendFactor);
+      AD9833setFrequency(i, voices[i].noteFreq, Deform);
+    }
   }
-  bendNotes();
 }
 
 // ***********************************************************************
@@ -255,7 +258,6 @@ void noteOn(uint8_t midiNote, uint8_t velocity) {
   }
 }
 
-// Sustain management
 void unsustainNotes() {
   for (int i = 0; i < NUM_VOICES; i++) {
     voices[i].sustained = false;
@@ -295,10 +297,10 @@ void setup() {
   //pinMode(A0, INPUT_PULLUP);
   for (int i = 0; i < NUM_VOICES; i++) {
     int FSYNC_PIN_INIT = FSYNC_PINS[i];
-    pinMode(FSYNC_PIN_INIT, OUTPUT);                           // Prepare FSYNC pin for output
+    pinMode(FSYNC_PIN_INIT, OUTPUT);           
     digitalWrite(FSYNC_PIN_INIT, HIGH); 
     AD9833Reset(i);
-    }                     // Set it high for good measure
+    }                    
 }
 
 // ************************************************
@@ -306,27 +308,18 @@ void setup() {
 // ************************************************
 
 void loop() {
-
   if (MIDI.read()) {
-  
     // -------------------- Note On
     if (MIDI.getType() == midi::NoteOn && MIDI.getChannel() == MIDI_CHANNEL) {
       midiNote = MIDI.getData1();
       velocity = MIDI.getData2();
       noteOn(midiNote, velocity);
-       for (int i = 0; i < NUM_VOICES; i++) {
-        //    debugPrint(i);
-        }
-      
     }
     
     // -------------------- Note Off
     if (MIDI.getType() == midi::NoteOff && MIDI.getChannel() == MIDI_CHANNEL) {
       midiNote = MIDI.getData1();
-        noteOff(midiNote);
-          for (int i = 0; i < NUM_VOICES; i++) {
-          //  debugPrint(i);
-        }
+      noteOff(midiNote);
     }
 
     // ------------------ Pitchbend 
@@ -351,17 +344,10 @@ void loop() {
       if (sustainPedal > 63) {
         susOn = true;
         sustainNotes();
-        for (int i = 0; i < NUM_VOICES; i++) {
-          //  debugPrint(i);
-        }
       } 
       if (sustainPedal <= 63) {
         susOn = false;
         unsustainNotes();
-        //Serial.print("SusOff");
-        for (int i = 0; i < NUM_VOICES; i++) {
-          //  debugPrint(i);
-        }
       }
     }
 
