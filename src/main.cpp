@@ -151,11 +151,30 @@ float calculatePortaShift() {
     float deltaTime = (voices[i].noteAge - voices[i].prevNoteAge) / 1000.0f; // Calculate the elapsed time since the previous note event
     // Check if portamento is enabled and calculate the step size accordingly
     if (portaSpeed > 0) {
-      float portaTime = 5000.0f - (knobValue / 126.0f) * 4500.0f; // Calculate the portamento time in milliseconds based on knob value
-      float portaStep = voices[i].portaDiff * (deltaTime / portaTime); // Calculate the step size for this frame
-      voices[i].noteFreq = voices[i].noteFreq + portaStep; // Calculate the current frequency based on the previous frequency and the portamento step
+      float portaTimeMs = 5000.0f - (portaSpeed / 127.0f) * 4500.0f; // Calculate the portamento time in milliseconds based on knob value
+      float portaStep = voices[i].portaDiff * (deltaTime / portaTimeMs); // Calculate the step size for this frame
+      voices[i].noteFreq += portaStep; // Calculate the current frequency based on the previous frequency and the portamento step
     }
   }
+}
+
+void updateVoices() {
+  float deltaTime = 0.001f; // Fixed time interval of 1 millisecond
+  
+  for (int i = 0; i < NUM_VOICES; i++) {
+    if (voices[i].noteOn) {
+      float currentFreq = voices[i].noteFreq;
+      // If portamento is enabled, calculate the portamento shift
+      if (portaSpeed > 0 && voices[i].prevNoteFreq != currentFreq) {
+        currentFreq = calculatePortaShift(i);
+      }
+      
+      // Update the fields for the voice
+      voices[i].prevNoteFreq = currentFreq;
+      voices[i].prevNoteAge = voices[i].noteAge;
+    }
+  }
+  bendNotes();
 }
 
 // ***********************************************************************
@@ -222,7 +241,6 @@ void noteOn(uint8_t midiNote, uint8_t velocity) {
   voices[voice].keyDown = true;
   voices[voice].velocity = velocity;
   voices[voice].noteFreq = noteFrequency[voices[voice].midiNote];
-  bendNotes();
 }
   
   void noteOff(uint8_t midiNote) {
@@ -316,7 +334,6 @@ void loop() {
     // ------------------ Pitchbend 
     if (MIDI.getType() == midi::PitchBend && MIDI.getChannel() == MIDI_CHANNEL) {
       pitchBenderValue = MIDI.getData2() << 7 | MIDI.getData1(); // already 14 bits = Volts out
-      bendNotes();
     }
 
     // ------------------ Aftertouch 
@@ -365,6 +382,6 @@ void loop() {
   // *************************** OUTPUT *****************************
   // ****************************************************************
 
-  bendNotes();
+  updateVoices();
   
 }
