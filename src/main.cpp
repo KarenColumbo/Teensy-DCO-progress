@@ -145,7 +145,7 @@ void bendNotes() {
 */
 
 // -------------------- Portamento
-float calculatePortaShift() {
+void calculatePortaShift() {
   float deltaTime = 0.001f; // Fixed time interval of 1 millisecond
   for (int i = 0; i < NUM_VOICES; i++) {
     deltaTime = (voices[i].noteAge - voices[i].prevNoteAge) / 1000.0f; // Calculate the elapsed time since the previous note event
@@ -157,10 +157,6 @@ float calculatePortaShift() {
     }
   }
 }
-
-// ***********************************************************************
-// ************************* MAIN VOICES UPDATE **************************
-// ***********************************************************************
 
 void updateVoices() {
   calculatePortaShift(); // update Porta
@@ -290,7 +286,7 @@ IntervalTimer LFOtimer; // create an IntervalTimer object
 // ************************************************
 
 void setup() {
-  LFOtimer.begin(calculatePortaShift, 2000); // call calculatePortaShift every 2ms
+  LFOtimer.begin(&calculatePortaShift, 2000); // call calculatePortaShift every 2ms
 	Serial.begin(9600);
   MIDI.begin(MIDI_CHANNEL);
   SPI.begin();
