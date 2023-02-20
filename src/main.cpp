@@ -31,6 +31,7 @@ uint8_t knobValue = 0;
 int portaSpeed = 0;
 float glideSize = (pow(2, 1 / 12) / 100);
 float semitoneSteps = 0;
+float currentStep;
 
 bool eventTrig = false;
 
@@ -142,9 +143,9 @@ eventTrig = false;
 // ------------------------ Calculate portamento steps
 
 void portamento(int voiceIndex, float targetFreq, float glideTime) {
-  float stepSize = 12 * log2(voices[voiceIndex].noteDiff) / glideTime;
+  float stepSize = (voices[voiceIndex].noteFreq + currentStep) * (2^(1/12) - 1) / glideTime;
   if (voices[voiceIndex].noteDiff > stepSize) {
-    float currentStep = voices[voiceIndex].noteDiff - stepSize;
+   currentStep = voices[voiceIndex].noteDiff - stepSize;
     voices[voiceIndex].dcoFreq += currentStep;
     voices[voiceIndex].noteDiff = currentStep;
   } else {
