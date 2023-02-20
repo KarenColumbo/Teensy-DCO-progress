@@ -360,11 +360,12 @@ void loop() {
     if (voices[i].noteOn == true) {
       voices[i].noteFreq = noteFrequency[voices[i].midiNote] * pow(ratio, bendFactor);
       if (voices[i].noteFreq != voices[i].prevNoteFreq) {
-        // Set the target frequency and glide time for the portamento
-        float targetFreq = voices[i].noteFreq;
-        float glideTime = 100; // Example glide time of 100 milliseconds
-        // Call the portamento subroutine to smoothly transition the frequency
-        portamento(i, targetFreq, glideTime);
+        if (portaSpeed > 0) { // Set the target frequency and glide time for the portamento
+          float targetFreq = voices[i].noteFreq;
+          float glideTime = portaSpeed * 10; // Example glide time of 100 milliseconds
+          // Call the portamento subroutine to smoothly transition the frequency
+          portamento(i, targetFreq, glideTime);
+        }
       }
     }
   }
