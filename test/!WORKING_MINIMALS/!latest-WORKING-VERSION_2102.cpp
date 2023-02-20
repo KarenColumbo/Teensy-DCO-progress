@@ -7,7 +7,7 @@
 #include "notes.h"
 #include <IntervalTimer.h>
 
-#define NUM_VOICES 8
+#define POLYPHONY 8
 #define MIDI_CHANNEL 1
 #define DETUNE 0
 #define PITCH_BEND_RANGE 2
@@ -47,10 +47,10 @@ unsigned long MCLK = 25000000;
     float prevNoteFreq;
   };
 
-Voice voices[NUM_VOICES];
+Voice voices[POLYPHONY];
 
 void initializeVoices() {
-  for (int i = 0; i < NUM_VOICES; i++) {
+  for (int i = 0; i < POLYPHONY; i++) {
     voices[i].noteAge = 0;
     voices[i].midiNote = 0;
     voices[i].noteOn = false;
@@ -99,7 +99,7 @@ void AD9833Reset(int AD_board) {
 
 // ------------------------ Update voice
 void updateVoices() {
-  for (int i = 0; i < NUM_VOICES; i++) {
+  for (int i = 0; i < POLYPHONY; i++) {
     float ratio = pow(2, 1 / 12.0);
     bendFactor = map(pitchBenderValue, 0, 16383, -PITCH_BEND_RANGE, PITCH_BEND_RANGE);
     if (voices[i].noteOn == true) {
@@ -134,7 +134,7 @@ void portaStep() {
 int findOldestVoice() {
   int oldestVoice = 0;
   unsigned long oldestAge = 0xFFFFFFFF;
-  for (int i = 0; i < NUM_VOICES; i++) {
+  for (int i = 0; i < POLYPHONY; i++) {
     if (!voices[i].noteOn && voices[i].noteAge < oldestAge) {
       oldestVoice = i;
       oldestAge = voices[i].noteAge;
@@ -145,7 +145,7 @@ int findOldestVoice() {
 
 int findVoice(uint8_t midiNote) {
   int foundVoice = -1;
-  for (int i = 0; i < NUM_VOICES; i++) {
+  for (int i = 0; i < POLYPHONY; i++) {
     if (voices[i].noteOn && voices[i].midiNote == midiNote) {
       foundVoice = i;
       break;
@@ -159,16 +159,16 @@ void noteOn(uint8_t midiNote, uint8_t velocity) {
   int voice = findVoice(midiNote);
   if (voice == -1) {
     int numPlayingVoices = 0;
-    for (int i = 0; i < NUM_VOICES; i++) {
+    for (int i = 0; i < POLYPHONY; i++) {
       if (voices[i].noteOn) {
         numPlayingVoices++;
         //AD9833setFrequency(i, noteFrequency[voices[i].midiNote]); // not sure I need this here ...
       }
     }
-    if (numPlayingVoices >= NUM_VOICES) {
+    if (numPlayingVoices >= POLYPHONY) {
       unsigned long oldestAge = 0xFFFFFFFF;
       int oldestVoice = -1;
-      for (int i = 0; i < NUM_VOICES; i++) {
+      for (int i = 0; i < POLYPHONY; i++) {
         if (voices[i].noteAge < oldestAge) {
           oldestAge = voices[i].noteAge;
           oldestVoice = i;
@@ -176,7 +176,7 @@ void noteOn(uint8_t midiNote, uint8_t velocity) {
       }
       voice = oldestVoice;
     } else {
-      for (int i = 0; i < NUM_VOICES; i++) {
+      for (int i = 0; i < POLYPHONY; i++) {
         if (!voices[i].noteOn) {
           voice = i;
           break;
@@ -209,7 +209,7 @@ void noteOff(uint8_t midiNote) {
 }
 
 void unsustainNotes() {
-  for (int i = 0; i < NUM_VOICES; i++) {
+  for (int i = 0; i < POLYPHONY; i++) {
     voices[i].sustained = false;
     if (voices[i].keyDown == false) {
       voices[i].noteOn = false;
@@ -222,7 +222,7 @@ void unsustainNotes() {
 }
 
 void sustainNotes() {
-  for (int i = 0; i < NUM_VOICES; i++) {
+  for (int i = 0; i < POLYPHONY; i++) {
     if (voices[i].noteOn == true) {
       voices[i].sustained = true;
     }
@@ -241,7 +241,7 @@ void setup() {
 	Serial.begin(9600);
   MIDI.begin(MIDI_CHANNEL);
   SPI.begin();
-  for (int i = 0; i < NUM_VOICES; i++) {
+  for (int i = 0; i < POLYPHONY; i++) {
     int FSYNC_PIN_INIT = FSYNC_PINS[i];
     pinMode(FSYNC_PIN_INIT, OUTPUT);                           
     digitalWrite(FSYNC_PIN_INIT, HIGH); 

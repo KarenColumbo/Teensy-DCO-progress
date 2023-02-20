@@ -1,3 +1,5 @@
+// Implement switch to choose whether sustained notes get bent
+
 #include <stdint.h>
 #include <Arduino.h>
 #include <MIDI.h>
@@ -7,7 +9,7 @@
 #include "notes.h"
 #include <IntervalTimer.h>
 
-#define NUM_VOICES 8
+#define POLYPHONY 8
 #define MIDI_CHANNEL 1
 #define DETUNE 0
 #define PITCH_BEND_RANGE 2
@@ -29,6 +31,7 @@ uint8_t knobValue = 0;
 uint8_t knob[17];
 int midiNoteVoltage = 0;
 int portaSpeed = 0;
+bool change = false;
 
 // ----------------------------- DCO vars
 const int FSYNC_PINS[8] = {2, 3, 4, 5, 6, 7, 8, 9};
@@ -53,10 +56,10 @@ unsigned long MCLK = 25000000;
     unsigned long lastPortaStep;
   };
 
-Voice voices[NUM_VOICES];
+Voice voices[POLYPHONY];
 
 void initializeVoices() {
-  for (int i = 0; i < NUM_VOICES; i++) {
+  for (int i = 0; i < POLYPHONY; i++) {
     voices[i].noteAge = 0;
     voices[i].midiNote = 0;
     voices[i].noteOn = false;
@@ -110,35 +113,51 @@ void AD9833Reset(int AD_board) {
 
 // ------------------------ Update voice
 void updateVoices() {
-  for (int i = 0; i < NUM_VOICES; i++) {
-    float ratio = pow(2, 1 / 12.0);
-    bendFactor = map(pitchBenderValue, 0, 16383, -PITCH_BEND_RANGE, PITCH_BEND_RANGE);
-    if (voices[i].noteOn == true) {
-      voices[i].noteFreq = noteFrequency[voices[i].midiNote] * pow(ratio, bendFactor) + voices[i].portaStepSize;
-      long FreqReg0 = (voices[i].noteFreq * pow(2, 28)) / MCLK;   // Data sheet Freq Calc formula
-      int MSB0 = (int)((FreqReg0 & 0xFFFC000) >> 14);     // only lower 14 bits are used for data
-      int LSB0 = (int)(FreqReg0 & 0x3FFF);
-      int FSYNC_SET_PIN = FSYNC_PINS[i];
-      SPI.beginTransaction(SPISettings(SPI_CLOCK_SPEED, MSBFIRST, SPI_MODE2));
-      digitalWrite(FSYNC_SET_PIN, LOW);                         // set FSYNC low before writing to AD9833 registers
-      LSB0 |= 0x4000;                                    // DB 15=0, DB14=1
-      MSB0 |= 0x4000;                                    // DB 15=0, DB14=1
-      SPI.transfer16(LSB0);                              // write lower 16 bits to AD9833 registers
-      SPI.transfer16(MSB0);                              // write upper 16 bits to AD9833 registers
-      SPI.transfer16(0xC000);                           // write phase register
-      SPI.transfer16(0x2002);                           // take AD9833 out of reset and output triangle wave (DB8=0)
-      delayMicroseconds(2);                             // Settle time? Doesn't make much difference …
-      digitalWrite(FSYNC_SET_PIN, HIGH);                        // write done, set FSYNC high
-      SPI.endTransaction();
+  if (change == true) {
+    for (int i = 0; i < POLYPHONY; i++) {
+        long FreqReg0 = (voices[i].noteFreq * pow(2, 28)) / MCLK;   // Data sheet Freq Calc formula
+        int MSB0 = (int)((FreqReg0 & 0xFFFC000) >> 14);     // only lower 14 bits are used for data
+        int LSB0 = (int)(FreqReg0 & 0x3FFF);
+        int FSYNC_SET_PIN = FSYNC_PINS[i];
+        SPI.beginTransaction(SPISettings(SPI_CLOCK_SPEED, MSBFIRST, SPI_MODE2));
+        digitalWrite(FSYNC_SET_PIN, LOW);                         // set FSYNC low before writing to AD9833 registers
+        LSB0 |= 0x4000;                                    // DB 15=0, DB14=1
+        MSB0 |= 0x4000;                                    // DB 15=0, DB14=1
+        SPI.transfer16(LSB0);                              // write lower 16 bits to AD9833 registers
+        SPI.transfer16(MSB0);                              // write upper 16 bits to AD9833 registers
+        SPI.transfer16(0xC000);                           // write phase register
+        SPI.transfer16(0x2002);                           // take AD9833 out of reset and output triangle wave (DB8=0)
+        delayMicroseconds(2);                             // Settle time? Doesn't make much difference …
+        digitalWrite(FSYNC_SET_PIN, HIGH);                        // write done, set FSYNC high
+        SPI.endTransaction();
+      }
     }
   }
+  change = false;
 }
 
 // ------------------------ Calculate portamento steps
 
+void portamento(int voiceIndex, float targetFreq, float glideTime) {
+  // Get the current frequency of the voice
+  float currentFreq = voices[voiceIndex].noteFreq;
+  
+  // Calculate the step size for each update
+  float stepSize = (targetFreq - currentFreq) / (glideTime * 1000);
+  
+  // Update the frequency of the voice on each iteration
+  for (int i = 0; i < glideTime * 1000; i++) {
+    currentFreq += stepSize;
+    voices[voiceIndex].noteFreq = currentFreq;
+    AD9833setFrequency(voiceIndex, currentFreq);
+    delay(1); // Wait for one millisecond
+  }
+}
+
 void portaStep() {
+  /*
   if (portaSpeed > 10) {  // safety margin for crappy knobs & faders
-    for (int i = 0; i < NUM_VOICES; i++) {
+    for (int i = 0; i < POLYPHONY; i++) {
       if (voices[i].portaOn == true) {
         float deltaTime = voices[i].noteAge - voices[i].prevNoteAge; // time diff between current and previous note
         float portaTimeMs = 5000.0f - (portaSpeed / 127.0f) * 4500.0f;  // time slice depending on porta speed
@@ -147,6 +166,7 @@ void portaStep() {
       }
     }
   }
+  */
 }
 
 // ------------------------ Voice buffer routines
@@ -154,7 +174,7 @@ void portaStep() {
 int findOldestVoice() {
   int oldestVoice = 0;
   unsigned long oldestAge = 0xFFFFFFFF;
-  for (int i = 0; i < NUM_VOICES; i++) {
+  for (int i = 0; i < POLYPHONY; i++) {
     if (!voices[i].noteOn && voices[i].noteAge < oldestAge) {
       oldestVoice = i;
       oldestAge = voices[i].noteAge;
@@ -165,7 +185,7 @@ int findOldestVoice() {
 
 int findVoice(uint8_t midiNote) {
   int foundVoice = -1;
-  for (int i = 0; i < NUM_VOICES; i++) {
+  for (int i = 0; i < POLYPHONY; i++) {
     if (voices[i].noteOn && voices[i].midiNote == midiNote) {
       foundVoice = i;
       break;
@@ -179,16 +199,16 @@ void noteOn(uint8_t midiNote, uint8_t velocity) {
   int voice = findVoice(midiNote);
   if (voice == -1) {
     int numPlayingVoices = 0;
-    for (int i = 0; i < NUM_VOICES; i++) {
+    for (int i = 0; i < POLYPHONY; i++) {
       if (voices[i].noteOn) {
         numPlayingVoices++;
         //AD9833setFrequency(i, noteFrequency[voices[i].midiNote]); // not sure I need this here ...
       }
     }
-    if (numPlayingVoices >= NUM_VOICES) {
+    if (numPlayingVoices >= POLYPHONY) {
       unsigned long oldestAge = 0xFFFFFFFF;
       int oldestVoice = -1;
-      for (int i = 0; i < NUM_VOICES; i++) {
+      for (int i = 0; i < POLYPHONY; i++) {
         if (voices[i].noteAge < oldestAge) {
           oldestAge = voices[i].noteAge;
           oldestVoice = i;
@@ -196,7 +216,7 @@ void noteOn(uint8_t midiNote, uint8_t velocity) {
       }
       voice = oldestVoice;
     } else {
-      for (int i = 0; i < NUM_VOICES; i++) {
+      for (int i = 0; i < POLYPHONY; i++) {
         if (!voices[i].noteOn) {
           voice = i;
           break;
@@ -211,7 +231,7 @@ void noteOn(uint8_t midiNote, uint8_t velocity) {
   voices[voice].velocity = velocity;
   voices[voice].noteFreq = noteFrequency[voices[voice].midiNote];
   voices[voice].prevNoteDiff = voices[voice].noteFreq - voices[voice].prevNoteFreq;
-  updateVoices();
+  change = true;
 }
 
 void noteOff(uint8_t midiNote) {
@@ -231,7 +251,7 @@ void noteOff(uint8_t midiNote) {
 }
 
 void unsustainNotes() {
-  for (int i = 0; i < NUM_VOICES; i++) {
+  for (int i = 0; i < POLYPHONY; i++) {
     voices[i].sustained = false;
     if (voices[i].keyDown == false) {
       voices[i].noteOn = false;
@@ -244,7 +264,7 @@ void unsustainNotes() {
 }
 
 void sustainNotes() {
-  for (int i = 0; i < NUM_VOICES; i++) {
+  for (int i = 0; i < POLYPHONY; i++) {
     if (voices[i].noteOn == true) {
       voices[i].sustained = true;
     }
@@ -252,18 +272,16 @@ void sustainNotes() {
 }
 
 MIDI_CREATE_INSTANCE(HardwareSerial, Serial1,  MIDI);
-IntervalTimer portaTimer;
 
 // ************************************************
 // ******************** SETUP *********************
 // ************************************************
 
 void setup() {
-  portaTimer.begin(&portaStep, 2000);
-	Serial.begin(9600);
+  Serial.begin(9600);
   MIDI.begin(MIDI_CHANNEL);
   SPI.begin();
-  for (int i = 0; i < NUM_VOICES; i++) {
+  for (int i = 0; i < POLYPHONY; i++) {
     int FSYNC_PIN_INIT = FSYNC_PINS[i];
     pinMode(FSYNC_PIN_INIT, OUTPUT);                           
     digitalWrite(FSYNC_PIN_INIT, HIGH); 
@@ -294,9 +312,9 @@ void loop() {
 
     // ------------------ Pitchbend 
     if (MIDI.getType() == midi::PitchBend && MIDI.getChannel() == MIDI_CHANNEL) {
-      prevPitchBenderValue = pitchBenderValue;
       pitchBenderValue = MIDI.getData2() << 7 | MIDI.getData1(); // already 14 bits = Volts out
-      updateVoices();
+      float ratio = pow(2, 1 / 12.0);
+      bendFactor = map(pitchBenderValue, 0, 16383, -PITCH_BEND_RANGE, PITCH_BEND_RANGE);
     }
 
     // ------------------ Aftertouch 
@@ -335,5 +353,23 @@ void loop() {
   // ****************************************************************
   // *************************** OUTPUT *****************************
   // ****************************************************************
-  
+
+  // ------------------ Calculate voice freqs
+
+  for (int i = 0; i < POLYPHONY; i++) {
+    if (voices[i].noteOn == true) {
+      voices[i].noteFreq = noteFrequency[voices[i].midiNote] * pow(ratio, bendFactor);
+      if (voices[i].noteFreq != voices[i].prevNoteFreq) {
+        // Set the target frequency and glide time for the portamento
+        float targetFreq = voices[i].noteFreq;
+        float glideTime = 100; // Example glide time of 100 milliseconds
+        // Call the portamento subroutine to smoothly transition the frequency
+        portamento(i, targetFreq, glideTime);
+      }
+    }
+  }
+
+  // ------------------ Portamento
+
+  updateVoices();
 }
