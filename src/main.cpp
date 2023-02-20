@@ -1,3 +1,7 @@
+// Set a "change" flag for each event.
+// put voice update at the end of the main loop
+// set change flag to false after voice update
+
 #include <stdint.h>
 #include <Arduino.h>
 #include <MIDI.h>
