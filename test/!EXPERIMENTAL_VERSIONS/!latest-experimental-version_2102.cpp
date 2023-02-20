@@ -29,13 +29,14 @@ uint8_t knobNumber = 0;
 uint8_t knobValue = 0;
 int portaSpeed = 0;
 float glideSize = (pow(2, 1 / 12) / 100);
+float semitoneSteps = 0;
 
 bool eventTrig = false;
 
 // ----------------------------- DCO vars
 const int FSYNC_PINS[8] = {2, 3, 4, 5, 6, 7, 8, 9};
 const int DAC_CHANNELS[8] = {0, 1, 2, 3, 0, 1, 2, 3};
-#define SPI_CLOCK_SPEED 7500000                     // 7.5 MHz SPI clock - this works ALMOST without clock ticks
+#define SPI_CLOCK_SPEED 7500000  
 unsigned long MCLK = 25000000;      
 
 // ----------------------------- Voice struct
@@ -138,13 +139,9 @@ eventTrig = false;
 }
 
 // ------------------------ Calculate portamento steps
-/*1. This routine gets called once a main loop cycle.
-2. It reads voices[voiceIndex].prefNoteDiff - this is the "distance" between the new noteOn and the previous note.
-3. It should subtract (semitone/100)*(portaSpeed/12) from the prefNoteDiff
-4. It then adds prefNoteDiff to voices[voiceIndex].noteFreq*/
 
 void portamento(int voiceIndex, float targetFreq, float glideTime) {
-  float stepSize = (pow(2, 1 / 12) / 100) * (glideTime / 12.7);
+  float stepSize = 12 * log2(voices[voiceIndex].noteDiff) / glideTime;
   if (voices[voiceIndex].noteDiff > stepSize) {
     float currentStep = voices[voiceIndex].noteDiff - stepSize;
     voices[voiceIndex].dcoFreq += currentStep;
@@ -215,7 +212,7 @@ void noteOn(uint8_t midiNote, uint8_t velocity) {
   voices[voice].keyDown = true;
   voices[voice].velocity = velocity;
   voices[voice].noteFreq = noteFrequency[voices[voice].midiNote];
-  voices[voice].noteDiff = voices[voice].noteFreq - voices[voice].prevNoteFreq;
+  voices[voice].noteDiff = voices[voice].noteFreq / voices[voice].prevNoteFreq;
   eventTrig = true;
 }
 
