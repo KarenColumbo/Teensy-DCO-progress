@@ -14,6 +14,7 @@
 #define PITCH_BEND_RANGE 2
 
 float pitchBenderValue = 8192;
+float prevPitchBenderValue = 8192;
 float pitchBendRatio = pow(2, 1 / 12.0);
 float bendFactor = 0;
 
@@ -294,6 +295,7 @@ void loop() {
 
     // ------------------ Pitchbend 
     if (MIDI.getType() == midi::PitchBend && MIDI.getChannel() == MIDI_CHANNEL) {
+      prevPitchBenderValue = pitchBenderValue;
       pitchBenderValue = MIDI.getData2() << 7 | MIDI.getData1(); // already 14 bits = Volts out
       bendFactor = map(pitchBenderValue, 0, 16383, -PITCH_BEND_RANGE, PITCH_BEND_RANGE);
     }
@@ -339,9 +341,13 @@ void loop() {
 
   for (int i = 0; i < POLYPHONY; i++) {
     if (voices[i].noteOn == true) {
-      voices[i].dcoFreq = voices[i].noteFreq * pow(pitchBendRatio, bendFactor);
+      if (pitchBenderValue != prevPitchBenderValue) {
+        voices[i].dcoFreq = voices[i].noteFreq * pow(pitchBendRatio, bendFactor);
+        eventTrig = true;
+      }
       if (portaSpeed > 0) { 
         portamento(i, voices[i].noteFreq, portaSpeed);
+        eventTrig = true;
       } else {
         voices[i].dcoFreq = voices[i].noteFreq;
       }
