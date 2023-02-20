@@ -31,6 +31,7 @@ int midiNoteVoltage = 0;
 
 // ----------------------------- DCO vars
 const int FSYNC_PINS[8] = {2, 3, 4, 5, 6, 7, 8, 9};
+const int DAC_CHANNELS[8] = {0, 1, 2, 3, 0, 1, 2, 3};
 #define SPI_CLOCK_SPEED 7500000                     // 7.5 MHz SPI clock - this works ALMOST without clock ticks
 unsigned long MCLK = 25000000;      
 
