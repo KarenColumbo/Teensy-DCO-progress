@@ -5,6 +5,7 @@
 #include <SPI.h>
 #include <ADC.h>
 #include <IntervalTimer.h>
+#include <TCA9548.h>
 
 // Freq & Volt arrays
 #include "notes.h"
@@ -43,6 +44,8 @@ uint8_t portaSpeed = 0;
 const int FSYNC_PINS[8] = {2, 3, 4, 5, 6, 7, 8, 9};
 #define SPI_CLOCK_SPEED 7500000                     // 7.5 MHz SPI clock - this works ALMOST without clock ticks
 unsigned long MCLK = 25000000;      
+
+// Voicebuffer
 struct Voice {
   unsigned long noteAge;
   unsigned long prevNoteAge;
@@ -51,7 +54,7 @@ struct Voice {
   bool sustained;
   bool keyDown;
   uint8_t velocity;
-  uint8_t prevNote;
+  float prevNoteFreq;
   uint16_t noteVolts;
   float noteFreq;
   float portaDiff;
@@ -68,7 +71,7 @@ void initializeVoices() {
     voices[i].sustained = false;
     voices[i].keyDown = false;
     voices[i].velocity = 0;
-    voices[i].prevNote = 0;
+    voices[i].prevNoteFreq = 0;
     voices[i].noteVolts = 0;
     voices[i].noteFreq = 0;
     voices[i].portaDiff = 0;
@@ -143,8 +146,9 @@ void bendNotes() {
 
 // -------------------- Portamento
 float calculatePortaShift() {
+  float deltaTime = 0.001f; // Fixed time interval of 1 millisecond
   for (int i = 0; i < NUM_VOICES; i++) {
-    float deltaTime = (voices[i].noteAge - voices[i].prevNoteAge) / 1000.0f; // Calculate the elapsed time since the previous note event
+    deltaTime = (voices[i].noteAge - voices[i].prevNoteAge) / 1000.0f; // Calculate the elapsed time since the previous note event
     // Check if portamento is enabled and calculate the step size accordingly
     if (portaSpeed > 0) {
       float portaTimeMs = 5000.0f - (portaSpeed / 127.0f) * 4500.0f; // Calculate the portamento time in milliseconds based on knob value
@@ -159,14 +163,10 @@ float calculatePortaShift() {
 // ***********************************************************************
 
 void updateVoices() {
-  float deltaTime = 0.001f; // Fixed time interval of 1 millisecond
+  calculatePortaShift(); // update Porta
   for (int i = 0; i < NUM_VOICES; i++) {
     if (voices[i].noteOn) {
       float currentFreq = voices[i].noteFreq;
-      // If portamento is enabled, calculate portamento shift
-      if (portaSpeed > 0 && voices[i].prevNoteFreq != currentFreq) {
-        currentFreq = calculatePortaShift(i);
-      }
       // Update voice
       voices[i].prevNoteFreq = currentFreq;
       voices[i].prevNoteAge = voices[i].noteAge;
