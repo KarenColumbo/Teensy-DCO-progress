@@ -28,6 +28,7 @@ uint8_t sustainPedal = 0;
 uint8_t knobNumber = 0;
 uint8_t knobValue = 0;
 int portaSpeed = 0;
+float glideSize = (pow(2, 1 / 12) / 100);
 
 bool eventTrig = false;
 
@@ -46,6 +47,7 @@ unsigned long MCLK = 25000000;
     uint8_t velocity;
     uint16_t noteVolts;
     float noteFreq;
+    float dcoFreq;
     float prevNoteFreq;
     float prevNoteDiff;
     unsigned long prevNoteAge;
@@ -66,6 +68,7 @@ void initializeVoices() {
     voices[i].velocity = 0;
     voices[i].noteVolts = 0;
     voices[i].noteFreq = 0;
+    voices[i].dcoFreq = 0;
     voices[i].prevNoteFreq = 0;
     voices[i].prevNoteDiff = 0;
     voices[i].prevNoteAge = 0;
@@ -113,7 +116,7 @@ void AD9833Reset(int AD_board) {
 void updateVoices() {
   if (eventTrig == true) {
     for (int i = 0; i < POLYPHONY; i++) {
-      long FreqReg0 = (voices[i].noteFreq * pow(2, 28)) / MCLK;   // Data sheet Freq Calc formula
+      long FreqReg0 = (voices[i].dcoFreq * pow(2, 28)) / MCLK;   // Data sheet Freq Calc formula
       int MSB0 = (int)((FreqReg0 & 0xFFFC000) >> 14);     // only lower 14 bits are used for data
       int LSB0 = (int)(FreqReg0 & 0x3FFF);
       int FSYNC_SET_PIN = FSYNC_PINS[i];
@@ -134,12 +137,20 @@ eventTrig = false;
 }
 
 // ------------------------ Calculate portamento steps
+/*1. This routine gets called once a main loop cycle.
+2. It reads voices[voiceIndex].prefNoteDiff - this is the "distance" between the new noteOn and the previous note.
+3. It should subtract (semitone/100)*(portaSpeed/12) from the prefNoteDiff
+4. It then adds prefNoteDiff to voices[voiceIndex].noteFreq*/
 
 void portamento(int voiceIndex, float targetFreq, float glideTime) {
-  // Calculate the step size for each update
-  float stepSize = (targetFreq - voices[voiceIndex].noteFreq) / (glideTime * 1000);
-  // Update the frequency of the voice on each iteration
-  voices[voiceIndex].noteFreq += stepSize;
+  float stepSize = ((pow(2, 1 / 12) / 100) * (glideTime / 12.7));
+  if (voices[voiceIndex].prevNoteDiff > stepSize) {
+    float currentStep = voices[voiceIndex].prevNoteDiff - stepSize;
+    voices[voiceIndex].dcoFreq += currentStep;
+    voices[voiceIndex].prevNoteDiff = currentStep;
+  } else {
+    voices[voiceIndex].dcoFreq = voices[voiceIndex].noteFreq;
+  }
 }
 
 // ------------------------ Voice buffer routines
@@ -331,14 +342,10 @@ void loop() {
 
   for (int i = 0; i < POLYPHONY; i++) {
     if (voices[i].noteOn == true) {
-      voices[i].noteFreq = noteFrequency[voices[i].midiNote] * pow(pitchBendRatio, bendFactor);
-      if (voices[i].noteFreq != voices[i].prevNoteFreq) {
-        if (portaSpeed > 0) { // Set the target frequency and glide time for the portamento
-          float targetFreq = voices[i].noteFreq;
-          float glideTime = portaSpeed * 10; // Example glide time of 100 milliseconds
-          // Call the portamento subroutine to smoothly transition the frequency
-          portamento(i, targetFreq, glideTime);
-        }
+      voices[i].dcoFreq = noteFrequency[voices[i].midiNote] * pow(pitchBendRatio, bendFactor);
+      if (portaSpeed > 0) { // Set the target frequency and glide time for the portamento
+        float targetFreq = voices[i].noteFreq;
+        portamento(i, targetFreq, portaSpeed);
       }
     }
   }
