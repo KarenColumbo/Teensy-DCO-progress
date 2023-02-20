@@ -49,7 +49,7 @@ unsigned long MCLK = 25000000;
     float noteFreq;
     float dcoFreq;
     float prevNoteFreq;
-    float prevNoteDiff;
+    float noteDiff;
     unsigned long prevNoteAge;
     bool portaOn;
     float portaStepSize;
@@ -70,7 +70,7 @@ void initializeVoices() {
     voices[i].noteFreq = 0;
     voices[i].dcoFreq = 0;
     voices[i].prevNoteFreq = 0;
-    voices[i].prevNoteDiff = 0;
+    voices[i].noteDiff = 0;
     voices[i].prevNoteAge = 0;
     voices[i].portaOn = false;
     voices[i].portaStepSize = 0;
@@ -144,10 +144,10 @@ eventTrig = false;
 
 void portamento(int voiceIndex, float targetFreq, float glideTime) {
   float stepSize = ((pow(2, 1 / 12) / 100) * (glideTime / 12.7));
-  if (voices[voiceIndex].prevNoteDiff > stepSize) {
-    float currentStep = voices[voiceIndex].prevNoteDiff - stepSize;
+  if (voices[voiceIndex].noteDiff > stepSize) {
+    float currentStep = voices[voiceIndex].noteDiff - stepSize;
     voices[voiceIndex].dcoFreq += currentStep;
-    voices[voiceIndex].prevNoteDiff = currentStep;
+    voices[voiceIndex].noteDiff = currentStep;
   } else {
     voices[voiceIndex].dcoFreq = voices[voiceIndex].noteFreq;
   }
@@ -214,7 +214,7 @@ void noteOn(uint8_t midiNote, uint8_t velocity) {
   voices[voice].keyDown = true;
   voices[voice].velocity = velocity;
   voices[voice].noteFreq = noteFrequency[voices[voice].midiNote];
-  voices[voice].prevNoteDiff = voices[voice].noteFreq - voices[voice].prevNoteFreq;
+  voices[voice].noteDiff = voices[voice].noteFreq - voices[voice].prevNoteFreq;
   eventTrig = true;
 }
 
@@ -342,10 +342,11 @@ void loop() {
 
   for (int i = 0; i < POLYPHONY; i++) {
     if (voices[i].noteOn == true) {
-      voices[i].dcoFreq = noteFrequency[voices[i].midiNote] * pow(pitchBendRatio, bendFactor);
-      if (portaSpeed > 0) { // Set the target frequency and glide time for the portamento
-        float targetFreq = voices[i].noteFreq;
-        portamento(i, targetFreq, portaSpeed);
+      voices[i].dcoFreq = voices[i].noteFreq * pow(pitchBendRatio, bendFactor);
+      if (portaSpeed > 0) { 
+        portamento(i, voices[i].noteFreq, portaSpeed);
+      } else {
+        voices[i].dcoFreq = voices[i].noteFreq;
       }
     }
   }
