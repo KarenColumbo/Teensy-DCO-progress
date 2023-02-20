@@ -346,7 +346,7 @@ void loop() {
         voices[i].dcoFreq = voices[i].noteFreq * pow(pitchBendRatio, bendFactor);
         eventTrig = true;
       }
-      if (portaSpeed > 0) { 
+      if (portaSpeed > 0 && voices[i].prevNote > 0) { 
         portamento(i, voices[i].noteFreq, portaSpeed);
         eventTrig = true;
       } else {
