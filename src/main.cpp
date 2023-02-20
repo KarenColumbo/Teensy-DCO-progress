@@ -45,6 +45,7 @@ const int FSYNC_PINS[8] = {2, 3, 4, 5, 6, 7, 8, 9};
 unsigned long MCLK = 25000000;      
 struct Voice {
   unsigned long noteAge;
+  unsigned long prevNoteAge;
   uint8_t midiNote;
   bool noteOn;
   bool sustained;
@@ -61,6 +62,7 @@ Voice voices[NUM_VOICES];
 void initializeVoices() {
   for (int i = 0; i < NUM_VOICES; i++) {
     voices[i].noteAge = 0;
+    voices[i].prevNoteAge = 0;
     voices[i].midiNote = 0;
     voices[i].noteOn = false;
     voices[i].sustained = false;
