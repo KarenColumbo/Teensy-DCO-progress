@@ -14,7 +14,7 @@
 #define PITCH_BEND_RANGE 2
 
 float pitchBenderValue = 8192;
-float pitchBendRatio = 0;
+float pitchBendRatio = pow(2, 1 / 12.0);
 float bendFactor = 0;
 
 bool susOn = false;
@@ -34,6 +34,7 @@ bool eventTrig = false;
 
 // ----------------------------- DCO vars
 const int FSYNC_PINS[8] = {2, 3, 4, 5, 6, 7, 8, 9};
+const int DAC_CHANNELS[8] = {0, 1, 2, 3, 0, 1, 2, 3};
 #define SPI_CLOCK_SPEED 7500000                     // 7.5 MHz SPI clock - this works ALMOST without clock ticks
 unsigned long MCLK = 25000000;      
 
@@ -143,7 +144,7 @@ eventTrig = false;
 4. It then adds prefNoteDiff to voices[voiceIndex].noteFreq*/
 
 void portamento(int voiceIndex, float targetFreq, float glideTime) {
-  float stepSize = ((pow(2, 1 / 12) / 100) * (glideTime / 12.7));
+  float stepSize = (pow(2, 1 / 12) / 100) * (glideTime / 12.7);
   if (voices[voiceIndex].noteDiff > stepSize) {
     float currentStep = voices[voiceIndex].noteDiff - stepSize;
     voices[voiceIndex].dcoFreq += currentStep;
@@ -297,7 +298,6 @@ void loop() {
     // ------------------ Pitchbend 
     if (MIDI.getType() == midi::PitchBend && MIDI.getChannel() == MIDI_CHANNEL) {
       pitchBenderValue = MIDI.getData2() << 7 | MIDI.getData1(); // already 14 bits = Volts out
-      pitchBendRatio = pow(2, 1 / 12.0);
       bendFactor = map(pitchBenderValue, 0, 16383, -PITCH_BEND_RANGE, PITCH_BEND_RANGE);
     }
 
