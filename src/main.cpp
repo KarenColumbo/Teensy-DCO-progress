@@ -5,6 +5,7 @@
 #include <SPI.h>
 #include <TCA9548.h>
 #include "notes.h"
+#include <IntervalTimer.h>
 
 #define POLYPHONY 8
 #define MIDI_CHANNEL 1
@@ -28,7 +29,7 @@ uint8_t knobNumber = 0;
 uint8_t knobValue = 0;
 uint8_t knob[17];
 int midiNoteVoltage = 0;
-
+uint8_t portaSpeed = 0;
 bool trig = false;
 
 // ----------------------------- DCO vars
@@ -37,17 +38,19 @@ const int FSYNC_PINS[8] = {2, 3, 4, 5, 6, 7, 8, 9};
 unsigned long MCLK = 25000000;      
 
 // ----------------------------- Voice struct
-  struct Voice {
-    unsigned long noteAge;
-    uint8_t midiNote;
-    bool noteOn;
-    bool sustained;
-    bool keyDown;
-    uint8_t velocity;
-    uint16_t noteVolts;
-    float noteFreq;
-    float prevNoteFreq;
-  };
+struct Voice {
+  unsigned long noteAge;
+  uint8_t midiNote;
+  bool noteOn;
+  bool sustained;
+  bool keyDown;
+  uint8_t velocity;
+  uint16_t noteVolts;
+  float noteFreq;
+  float prevNoteFreq;
+  float portaFreq;
+  float dcoFreq;
+};
 
 Voice voices[POLYPHONY];
 
@@ -62,7 +65,9 @@ void initializeVoices() {
     voices[i].noteVolts = 0;
     voices[i].noteFreq = 0;
     voices[i].prevNoteFreq = 0;
-    }
+    voices[i].portaFreq = 0;
+    voices[i].dcoFreq = 0;
+  }
 }
 
 // ------------------------ Debug Print
@@ -103,7 +108,7 @@ void AD9833Reset(int AD_board) {
 void updateVoices() {
   for (int i = 0; i < POLYPHONY; i++) {
     if (voices[i].noteOn == true) {
-      long FreqReg0 = (voices[i].noteFreq * pow(2, 28)) / MCLK;   // Data sheet Freq Calc formula
+      long FreqReg0 = (voices[i].dcoFreq * pow(2, 28)) / MCLK;   // Data sheet Freq Calc formula
       int MSB0 = (int)((FreqReg0 & 0xFFFC000) >> 14);     // only lower 14 bits are used for data
       int LSB0 = (int)(FreqReg0 & 0x3FFF);
       int FSYNC_SET_PIN = FSYNC_PINS[i];
@@ -125,7 +130,35 @@ void updateVoices() {
 // ------------------------ Calculate portamento steps
 
 void portaStep() {
-  
+  trig = false;
+  if (portaSpeed > 0) {
+    for (int i = 0; i < POLYPHONY; i++) {
+      float startF = voices[i].prevNoteFreq;
+      float portaF = voices[i].PortaFreq;
+      float endF = voices[i].noteFreq;
+      if (portaF != endF) {
+        trig = true; 
+        if (startF > 0) {
+          float semitone = voices[i].portaFreq * (pow(2, 1 / 12) - 1);
+          float portaStep = semitone / portaSpeed;
+          if (startF < endF) {
+            portaF += portaStep;
+            if (portaF >= endF) {
+              portaF = endF;
+            } 
+          }
+          if (startF > endF) {
+            portaF -= portaStep;
+            if (portaF <= endF) {
+              portaF = endF;
+            }
+          } 
+        }
+        voices[i].portaFreq = portaF;
+      }
+      voices[i].dcoFreq = voices[i].portaFreq;
+    }
+  }
 }
 
 // ------------------------ Voice buffer routines
@@ -188,6 +221,8 @@ void noteOn(uint8_t midiNote, uint8_t velocity) {
   voices[voice].keyDown = true;
   voices[voice].velocity = velocity;
   voices[voice].noteFreq = noteFrequency[voices[voice].midiNote];
+  voices[voice].portaFreq = voices[voice].prevNoteFreq;
+  voices[voice].dcoFreq = voices[voice].noteFreq;
   trig = true;
 }
 
@@ -235,7 +270,7 @@ IntervalTimer portaTimer;
 // ************************************************
 
 void setup() {
-  portaTimer.begin(&portaStep, 2000);
+  portaTimer.begin(&portaStep, 20000);
 	Serial.begin(9600);
   MIDI.begin(MIDI_CHANNEL);
   SPI.begin();
@@ -274,7 +309,7 @@ void loop() {
       pitchBenderValue = MIDI.getData2() << 7 | MIDI.getData1(); // already 14 bits = Volts out
       bendFactor = map(pitchBenderValue, 0, 16383, -PITCH_BEND_RANGE, PITCH_BEND_RANGE);
       for (int i = 0; i < POLYPHONY; i++) {
-        voices[i].noteFreq = noteFrequency[voices[i].midiNote] * pow(pow(2, 1 / 12.0), bendFactor);
+        voices[i].dcoFreq = noteFrequency[voices[i].midiNote] * pow(pow(2, 1 / 12.0), bendFactor);
       }
       trig = true;
     }
@@ -306,8 +341,8 @@ void loop() {
     if (MIDI.getType() == midi::ControlChange && MIDI.getChannel() == MIDI_CHANNEL) {
       knobNumber = MIDI.getData1();
       knobValue = MIDI.getData2();
-      if (knobNumber >69 && knobNumber <88) {
-        knob[knobNumber - 87] = knobValue;
+      if (knobNumber == 73) {
+        portaSpeed = knobValue;
       }
     }
   }
