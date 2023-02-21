@@ -14,6 +14,7 @@
 //#define LFO_PIN 40
 
 float pitchBenderValue = 8192;
+uint16_t pitchBenderVolt = 0;
 float prevPitchBenderValue = 8192;
 float bendFactor = 0;
 float ratio = 0;
@@ -37,6 +38,11 @@ const int FSYNC_PINS[8] = {2, 3, 4, 5, 6, 7, 8, 9};
 #define SPI_CLOCK_SPEED 7500000                     // 7.5 MHz SPI clock - this works ALMOST without clock ticks
 unsigned long MCLK = 25000000;      
 
+// ----------------------------- DAC vars
+#define TCA_ADDR 0x70
+#define MCP_CMD 0x40
+const int DAC_CHAN[8] = {0, 1, 2, 3, 0, 1, 2, 3};
+const int TCA_CHAN[32] = {0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6, 7, 7, 7, 7};
 // ----------------------------- Voice struct
 struct Voice {
   unsigned long noteAge;
@@ -68,6 +74,21 @@ void initializeVoices() {
     voices[i].portaFreq = 0;
     voices[i].dcoFreq = 0;
   }
+}
+
+// ------------------------ TCA/MCP subroutine
+void writeMCP4728(byte tcaChannel, byte mcpChannel, int data) {
+  // Select TCA9548A channel
+  Wire.beginTransmission(TCA_ADDR);
+  Wire.write(1 << tcaChannel);
+  Wire.endTransmission();
+
+  // Write to MCP4728
+  Wire.beginTransmission(0x60 | mcpChannel);
+  Wire.write(MCP_CMD);
+  Wire.write(data >> 8);
+  Wire.write(data & 0xFF);
+  Wire.endTransmission();
 }
 
 // ------------------------ Debug Print
@@ -125,6 +146,26 @@ void updateVoices() {
       SPI.endTransaction();
     }
   }
+}
+
+void updateDAC() {
+  for (i = 0; i < POLYPHONY; i++) {
+    writeMCP4728(TCA_CHAN[i], DAC_CHAN[i], (2^12 - 1) * (log2(voices[i].dcoFreq/32.7032) / log2(2093.0045/32.7032)));
+    writeMCP4728(TCA_CHAN[i + 8], DAC_CHAN[i], voices[i].velocity);
+    writeMCP4728(TCA_CHAN[i + 16], DAC_CHAN[i], voices[i].noteOn ? 4095 : 0);
+  }
+  writeMCP4728(6, 0, aftertouch);
+  writeMCP4728(6, 1, modulationWheel);
+  writeMCP4728(6, 2, pitchBenderVolt);
+}
+
+void setup() {
+  Wire.begin();
+  Wire.setWireTimeout(1000); // Set a timeout for I2C transactions
+  Wire.setClock(400000); // Set the I2C clock frequency to 400 kHz
+  Wire.beginTransmission(TCA_ADDR);
+  Wire.write(0x00); // Turn on internal pullup resistors
+  Wire.endTransmission();
 }
 
 // ------------------------ Calculate portamento steps
@@ -306,6 +347,7 @@ void loop() {
     if (MIDI.getType() == midi::PitchBend && MIDI.getChannel() == MIDI_CHANNEL) {
       prevPitchBenderValue = pitchBenderValue;
       pitchBenderValue = MIDI.getData2() << 7 | MIDI.getData1(); 
+      pitchBenderVolt = map(pitchBenderValue, 0, 16383, 0, 4095);
       bendFactor = map(pitchBenderValue, 0, 16383, -PITCH_BEND_RANGE, PITCH_BEND_RANGE);
       for (int i = 0; i < POLYPHONY; i++) {
         voices[i].dcoFreq = noteFrequency[voices[i].midiNote] * pow(pow(2, 1 / 12.0), bendFactor);
