@@ -140,7 +140,7 @@ void portaStep() {
         trig = true; 
         if (startF > 0) {
           float semitone = voices[i].portaFreq * (pow(2, 1 / 12) - 1);
-          float portaStep = semitone / portaSpeed;
+          float portaStep = semitone / map(portaSpeed, 0, 127, 0, 32);
           if (startF < endF) {
             portaF += portaStep;
             if (portaF >= endF) {
