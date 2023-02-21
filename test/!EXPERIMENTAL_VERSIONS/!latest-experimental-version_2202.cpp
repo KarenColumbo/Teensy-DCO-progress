@@ -32,7 +32,8 @@ int portaSpeed = 0;
 float glideSize = (pow(2, 1 / 12) / 100);
 float semitoneSteps = 0;
 float currentStep;
-
+unsigned long lastPortamentoTime[POLYPHONY] = {0}; // Initialize array to store last portamento time for each voice
+const int portaThreshold = 2;
 bool eventTrig = false;
 
 // ----------------------------- DCO vars
@@ -144,7 +145,7 @@ eventTrig = false;
 
 void portamento(int voiceIndex, float targetFreq, float glideTime) {
   float stepSize = (voices[voiceIndex].noteFreq + currentStep) * (pow(2, 1 / 12) - 1) / glideTime;
-  if (voices[voiceIndex].noteDiff > stepSize) {
+  if (voices[voiceIndex].noteDiff < stepSize || voices[voiceIndex].noteDiff > stepSize) {
    currentStep = voices[voiceIndex].noteDiff - stepSize;
     voices[voiceIndex].dcoFreq += currentStep;
     voices[voiceIndex].noteDiff = currentStep;
@@ -347,15 +348,16 @@ void loop() {
         eventTrig = true;
       }
       if (portaSpeed > 0 && voices[i].prevNoteFreq > 0) { 
-        portamento(i, voices[i].noteFreq, portaSpeed);
-        eventTrig = true;
+        unsigned long currentTime = millis(); // Get current time
+        if (currentTime - lastPortamentoTime[i] >= portaThreshold) { // Check if enough time has passed since last portamento call
+          portamento(i, voices[i].noteFreq, portaSpeed);
+          lastPortamentoTime[i] = currentTime; // Update last portamento time for this voice
+          eventTrig = true;
+        }
       } else {
         voices[i].dcoFreq = voices[i].noteFreq;
       }
     }
   }
-
-  // ------------------ Portamento
-
   updateVoices();
 }
