@@ -134,25 +134,29 @@ void portaStep() {
   for (int i = 0; i < POLYPHONY; i++) {
     if (voices[i].prevNoteFreq != 0 && voices[i].portaOn == true) {
       float freq1 = voices[i].prevNoteFreq;
+      Serial.println(freq1);
       float freq2 = voices[i].noteFreq;
       float freqStep = (now - voices[i].portaStart) / 100;
-      if (freq2 > freq1) {
-        if (voices[i].noteFreq <= freq1) { 
+      if (freq1 < freq2) {
+        freq1 += freqStep;
+        voices[i].noteFreq = freq1;
+        trig = true;
+        if (freq1 >= freq2) { 
           voices[i].noteFreq = freq2;
-          voices[i].portaOn = false; 
-        } else if (voices[i].noteFreq > freq1) {
-          voices[i].noteFreq -= freqStep;
+          voices[i].portaOn = false;
+          trig = true; 
         }
       } 
-      if (freq2 < freq1) {
-        if (voices[i].noteFreq >= freq1) { 
+      if (freq1 > freq2) {
+        freq1 -= freqStep;
+        voices[i].noteFreq = freq1;
+        trig = true;
+        if (freq1 <= freq2) { 
           voices[i].noteFreq = freq2;
-          voices[i].portaOn = false; 
-        } else if (voices[i].noteFreq < freq1) {
-          voices[i].noteFreq += freqStep;
+          voices[i].portaOn = false;
+          trig = true; 
         }
       }
-    trig = true;
     }
   }  
 }
