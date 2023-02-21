@@ -103,7 +103,6 @@ void AD9833Reset(int AD_board) {
 void updateVoices() {
   for (int i = 0; i < POLYPHONY; i++) {
     if (voices[i].noteOn == true) {
-      voices[i].noteFreq = noteFrequency[voices[i].midiNote] * pow(ratio, bendFactor);
       long FreqReg0 = (voices[i].noteFreq * pow(2, 28)) / MCLK;   // Data sheet Freq Calc formula
       int MSB0 = (int)((FreqReg0 & 0xFFFC000) >> 14);     // only lower 14 bits are used for data
       int LSB0 = (int)(FreqReg0 & 0x3FFF);
@@ -162,7 +161,6 @@ void noteOn(uint8_t midiNote, uint8_t velocity) {
     for (int i = 0; i < POLYPHONY; i++) {
       if (voices[i].noteOn) {
         numPlayingVoices++;
-        //AD9833setFrequency(i, noteFrequency[voices[i].midiNote]); // not sure I need this here ...
       }
     }
     if (numPlayingVoices >= POLYPHONY) {
@@ -190,7 +188,6 @@ void noteOn(uint8_t midiNote, uint8_t velocity) {
   voices[voice].keyDown = true;
   voices[voice].velocity = velocity;
   voices[voice].noteFreq = noteFrequency[voices[voice].midiNote];
-  voices[voice].prevNoteFreq = voices[voice].noteFreq;
   trig = true;
 }
 
@@ -203,6 +200,7 @@ void noteOff(uint8_t midiNote) {
       voices[voice].velocity = 0;
       voices[voice].midiNote = 0;
       voices[voice].noteAge = 0;
+      voices[voice].prevNoteFreq = voices[voice].noteFreq;
       voices[voice].noteFreq = 0;
     }
   }
@@ -274,8 +272,10 @@ void loop() {
     if (MIDI.getType() == midi::PitchBend && MIDI.getChannel() == MIDI_CHANNEL) {
       prevPitchBenderValue = pitchBenderValue;
       pitchBenderValue = MIDI.getData2() << 7 | MIDI.getData1(); // already 14 bits = Volts out
-      ratio = pow(2, 1 / 12.0);
       bendFactor = map(pitchBenderValue, 0, 16383, -PITCH_BEND_RANGE, PITCH_BEND_RANGE);
+      for (int i = 0; i < POLYPHONY; i++) {
+        voices[i].noteFreq = noteFrequency[voices[i].midiNote] * pow(pow(2, 1 / 12.0), bendFactor);
+      }
       trig = true;
     }
 
