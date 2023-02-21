@@ -1,5 +1,3 @@
-// Implement switch to choose whether sustained notes get bent
-
 #include <stdint.h>
 #include <Arduino.h>
 #include <MIDI.h>
@@ -7,17 +5,18 @@
 #include <SPI.h>
 #include <TCA9548.h>
 #include "notes.h"
+#include <IntervalTimer.h>
 
-#define POLYPHONY 1
+#define POLYPHONY 8
 #define MIDI_CHANNEL 1
 #define DETUNE 0
 #define PITCH_BEND_RANGE 2
+//#define LFO_PIN 40
 
 float pitchBenderValue = 8192;
 float prevPitchBenderValue = 8192;
-float pitchBendRatio = pow(2, 1 / 12.0);
 float bendFactor = 0;
-
+float ratio = 0;
 bool susOn = false;
 uint8_t midiNote = 0;
 uint8_t velocity = 0;
@@ -28,18 +27,14 @@ uint8_t ccValue = 0;
 uint8_t sustainPedal = 0;
 uint8_t knobNumber = 0;
 uint8_t knobValue = 0;
-int portaSpeed = 0;
-float glideSize = (pow(2, 1 / 12) / 100);
-float semitoneSteps = 0;
-float currentStep;
-unsigned long lastPortamentoTime[POLYPHONY] = {0}; // Initialize array to store last portamento time for each voice
-const int portaThreshold = 2;
-bool eventTrig = false;
+uint8_t knob[17];
+int midiNoteVoltage = 0;
+bool portaTrig = false;
+bool trig = false;
 
 // ----------------------------- DCO vars
 const int FSYNC_PINS[8] = {2, 3, 4, 5, 6, 7, 8, 9};
-const int DAC_CHANNELS[8] = {0, 1, 2, 3, 0, 1, 2, 3};
-#define SPI_CLOCK_SPEED 7500000  
+#define SPI_CLOCK_SPEED 7500000                     // 7.5 MHz SPI clock - this works ALMOST without clock ticks
 unsigned long MCLK = 25000000;      
 
 // ----------------------------- Voice struct
@@ -52,13 +47,9 @@ unsigned long MCLK = 25000000;
     uint8_t velocity;
     uint16_t noteVolts;
     float noteFreq;
-    float dcoFreq;
     float prevNoteFreq;
-    float noteDiff;
-    unsigned long prevNoteAge;
+    long portaStart;
     bool portaOn;
-    float portaStepSize;
-    unsigned long lastPortaStep;
   };
 
 Voice voices[POLYPHONY];
@@ -73,13 +64,9 @@ void initializeVoices() {
     voices[i].velocity = 0;
     voices[i].noteVolts = 0;
     voices[i].noteFreq = 0;
-    voices[i].dcoFreq = 0;
     voices[i].prevNoteFreq = 0;
-    voices[i].noteDiff = 0;
-    voices[i].prevNoteAge = 0;
+    voices[i].portaStart = 0;
     voices[i].portaOn = false;
-    voices[i].portaStepSize = 0;
-    voices[i].lastPortaStep = 0;
     }
 }
 
@@ -107,7 +94,7 @@ void debugPrint(int voice) {
 // **************************** DCO routines *****************************
 // ***********************************************************************
 
-// ------------------------ Reset AD9833
+// ------------------------ Output voice
 
 void AD9833Reset(int AD_board) {
   SPI.beginTransaction(SPISettings(SPI_CLOCK_SPEED, MSBFIRST, SPI_MODE2));
@@ -117,41 +104,57 @@ void AD9833Reset(int AD_board) {
   digitalWrite(FSYNC_RESET_PIN, HIGH);
 }
 
-// ------------------------ Write AD9833
+// ------------------------ Update voice
 void updateVoices() {
-  if (eventTrig == true) {
-    for (int i = 0; i < POLYPHONY; i++) {
-      long FreqReg0 = (voices[i].dcoFreq * pow(2, 28)) / MCLK;   // Data sheet Freq Calc formula
+  for (int i = 0; i < POLYPHONY; i++) {
+    if (voices[i].noteOn == true) {
+      long FreqReg0 = (voices[i].noteFreq * pow(2, 28)) / MCLK;   // Data sheet Freq Calc formula
       int MSB0 = (int)((FreqReg0 & 0xFFFC000) >> 14);     // only lower 14 bits are used for data
       int LSB0 = (int)(FreqReg0 & 0x3FFF);
       int FSYNC_SET_PIN = FSYNC_PINS[i];
       SPI.beginTransaction(SPISettings(SPI_CLOCK_SPEED, MSBFIRST, SPI_MODE2));
-      digitalWrite(FSYNC_SET_PIN, LOW);  // set FSYNC low before writing to A9833 registers
-      LSB0 |= 0x4000;  // DB 15=0, DB14=1
-      MSB0 |= 0x4000;  // DB 15=0, DB14=1
-      SPI.transfer16(LSB0);  // write lower 16 bits to AD9833 registers
-      SPI.transfer16(MSB0);  // write upper 16 bits to AD9833 registers
-      SPI.transfer16(0xC000);  // write phase register
-      SPI.transfer16(0x2002);  // take AD9833 out of reset and output triangle wave (DB8=0)
-      delayMicroseconds(2);  // Settle time? Doesn't make much difference …
-      digitalWrite(FSYNC_SET_PIN, HIGH);  // write done, set FSYNC high
+      digitalWrite(FSYNC_SET_PIN, LOW);                         // set FSYNC low before writing to AD9833 registers
+      LSB0 |= 0x4000;                                    // DB 15=0, DB14=1
+      MSB0 |= 0x4000;                                    // DB 15=0, DB14=1
+      SPI.transfer16(LSB0);                              // write lower 16 bits to AD9833 registers
+      SPI.transfer16(MSB0);                              // write upper 16 bits to AD9833 registers
+      SPI.transfer16(0xC000);                           // write phase register
+      SPI.transfer16(0x2002);                           // take AD9833 out of reset and output triangle wave (DB8=0)
+      delayMicroseconds(2);                             // Settle time? Doesn't make much difference …
+      digitalWrite(FSYNC_SET_PIN, HIGH);                        // write done, set FSYNC high
       SPI.endTransaction();
     }
   }
-eventTrig = false;
 }
 
 // ------------------------ Calculate portamento steps
 
-void portamento(int voiceIndex, float targetFreq, float glideTime) {
-  float stepSize = (voices[voiceIndex].noteFreq + currentStep) * (pow(2, 1 / 12) - 1) / glideTime;
-  if (voices[voiceIndex].noteDiff < stepSize || voices[voiceIndex].noteDiff > stepSize) {
-   currentStep = voices[voiceIndex].noteDiff - stepSize;
-    voices[voiceIndex].dcoFreq += currentStep;
-    voices[voiceIndex].noteDiff = currentStep;
-  } else {
-    voices[voiceIndex].dcoFreq = voices[voiceIndex].noteFreq;
-  }
+void portaStep() {
+  long now = millis();
+  for (int i = 0; i < POLYPHONY; i++) {
+    if (voices[i].prevNoteFreq != 0 && voices[i].portaOn == true) {
+      float freq1 = voices[i].prevNoteFreq;
+      float freq2 = voices[i].noteFreq;
+      float freqStep = (now - voices[i].portaStart) / 100;
+      if (freq2 > freq1) {
+        if (voices[i].noteFreq <= freq1) { 
+          voices[i].noteFreq = freq2;
+          voices[i].portaOn = false; 
+        } else if (voices[i].noteFreq > freq1) {
+          voices[i].noteFreq -= freqStep;
+        }
+      } 
+      if (freq2 < freq1) {
+        if (voices[i].noteFreq >= freq1) { 
+          voices[i].noteFreq = freq2;
+          voices[i].portaOn = false; 
+        } else if (voices[i].noteFreq < freq1) {
+          voices[i].noteFreq += freqStep;
+        }
+      }
+    trig = true;
+    }
+  }  
 }
 
 // ------------------------ Voice buffer routines
@@ -187,7 +190,6 @@ void noteOn(uint8_t midiNote, uint8_t velocity) {
     for (int i = 0; i < POLYPHONY; i++) {
       if (voices[i].noteOn) {
         numPlayingVoices++;
-        //AD9833setFrequency(i, noteFrequency[voices[i].midiNote]); // not sure I need this here ...
       }
     }
     if (numPlayingVoices >= POLYPHONY) {
@@ -215,8 +217,8 @@ void noteOn(uint8_t midiNote, uint8_t velocity) {
   voices[voice].keyDown = true;
   voices[voice].velocity = velocity;
   voices[voice].noteFreq = noteFrequency[voices[voice].midiNote];
-  voices[voice].noteDiff = voices[voice].noteFreq / voices[voice].prevNoteFreq;
-  eventTrig = true;
+  voices[voice].portaStart = millis();
+  trig = true;
 }
 
 void noteOff(uint8_t midiNote) {
@@ -224,12 +226,12 @@ void noteOff(uint8_t midiNote) {
   if (voice != -1) {
     voices[voice].keyDown = false;
     if (susOn == false) {
-      voices[voice].prevNoteFreq = voices[voice].noteFreq;
-      voices[voice].prevNoteAge = voices[voice].noteAge;
       voices[voice].noteOn = false;
       voices[voice].velocity = 0;
       voices[voice].midiNote = 0;
       voices[voice].noteAge = 0;
+      voices[voice].prevNoteFreq = voices[voice].noteFreq;
+      if (portaTrig == true) { voices[voice].portaOn = true; }
       voices[voice].noteFreq = 0;
     }
   }
@@ -257,13 +259,15 @@ void sustainNotes() {
 }
 
 MIDI_CREATE_INSTANCE(HardwareSerial, Serial1,  MIDI);
+IntervalTimer portaTimer;
 
 // ************************************************
 // ******************** SETUP *********************
 // ************************************************
 
 void setup() {
-  Serial.begin(9600);
+  portaTimer.begin(&portaStep, 20000);
+	Serial.begin(9600);
   MIDI.begin(MIDI_CHANNEL);
   SPI.begin();
   for (int i = 0; i < POLYPHONY; i++) {
@@ -300,6 +304,10 @@ void loop() {
       prevPitchBenderValue = pitchBenderValue;
       pitchBenderValue = MIDI.getData2() << 7 | MIDI.getData1(); // already 14 bits = Volts out
       bendFactor = map(pitchBenderValue, 0, 16383, -PITCH_BEND_RANGE, PITCH_BEND_RANGE);
+      for (int i = 0; i < POLYPHONY; i++) {
+        voices[i].noteFreq = noteFrequency[voices[i].midiNote] * pow(pow(2, 1 / 12.0), bendFactor);
+      }
+      trig = true;
     }
 
     // ------------------ Aftertouch 
@@ -329,8 +337,8 @@ void loop() {
     if (MIDI.getType() == midi::ControlChange && MIDI.getChannel() == MIDI_CHANNEL) {
       knobNumber = MIDI.getData1();
       knobValue = MIDI.getData2();
-      if (knobNumber == 73) {
-        portaSpeed = knobValue;
+      if (knobNumber == 73 && knobValue > 0) {
+        portaTrig = true;
       }
     }
   }
@@ -338,26 +346,8 @@ void loop() {
   // ****************************************************************
   // *************************** OUTPUT *****************************
   // ****************************************************************
-
-  // ------------------ Calculate voice freqs
-
-  for (int i = 0; i < POLYPHONY; i++) {
-    if (voices[i].noteOn == true) {
-      if (pitchBenderValue != prevPitchBenderValue) {
-        voices[i].dcoFreq = voices[i].noteFreq * pow(pitchBendRatio, bendFactor);
-        eventTrig = true;
-      }
-      if (portaSpeed > 0 && voices[i].prevNoteFreq > 0) { 
-        unsigned long currentTime = millis(); // Get current time
-        if (currentTime - lastPortamentoTime[i] >= portaThreshold) { // Check if enough time has passed since last portamento call
-          portamento(i, voices[i].noteFreq, portaSpeed);
-          lastPortamentoTime[i] = currentTime; // Update last portamento time for this voice
-          eventTrig = true;
-        }
-      } else {
-        voices[i].dcoFreq = voices[i].noteFreq;
-      }
-    }
+  if (trig == true) {
+    updateVoices();
+    trig = false;
   }
-  updateVoices();
 }
