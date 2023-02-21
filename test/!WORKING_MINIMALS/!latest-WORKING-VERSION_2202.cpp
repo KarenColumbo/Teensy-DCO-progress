@@ -5,7 +5,6 @@
 #include <SPI.h>
 #include <TCA9548.h>
 #include "notes.h"
-#include <IntervalTimer.h>
 
 #define POLYPHONY 8
 #define MIDI_CHANNEL 1
@@ -16,6 +15,7 @@
 float pitchBenderValue = 8192;
 float prevPitchBenderValue = 8192;
 float bendFactor = 0;
+float ratio = 0;
 bool susOn = false;
 uint8_t midiNote = 0;
 uint8_t velocity = 0;
@@ -28,6 +28,8 @@ uint8_t knobNumber = 0;
 uint8_t knobValue = 0;
 uint8_t knob[17];
 int midiNoteVoltage = 0;
+
+bool trig = false;
 
 // ----------------------------- DCO vars
 const int FSYNC_PINS[8] = {2, 3, 4, 5, 6, 7, 8, 9};
@@ -100,8 +102,6 @@ void AD9833Reset(int AD_board) {
 // ------------------------ Update voice
 void updateVoices() {
   for (int i = 0; i < POLYPHONY; i++) {
-    float ratio = pow(2, 1 / 12.0);
-    bendFactor = map(pitchBenderValue, 0, 16383, -PITCH_BEND_RANGE, PITCH_BEND_RANGE);
     if (voices[i].noteOn == true) {
       voices[i].noteFreq = noteFrequency[voices[i].midiNote] * pow(ratio, bendFactor);
       long FreqReg0 = (voices[i].noteFreq * pow(2, 28)) / MCLK;   // Data sheet Freq Calc formula
@@ -191,7 +191,7 @@ void noteOn(uint8_t midiNote, uint8_t velocity) {
   voices[voice].velocity = velocity;
   voices[voice].noteFreq = noteFrequency[voices[voice].midiNote];
   voices[voice].prevNoteFreq = voices[voice].noteFreq;
-  updateVoices();
+  trig = true;
 }
 
 void noteOff(uint8_t midiNote) {
@@ -274,7 +274,9 @@ void loop() {
     if (MIDI.getType() == midi::PitchBend && MIDI.getChannel() == MIDI_CHANNEL) {
       prevPitchBenderValue = pitchBenderValue;
       pitchBenderValue = MIDI.getData2() << 7 | MIDI.getData1(); // already 14 bits = Volts out
-      updateVoices();
+      ratio = pow(2, 1 / 12.0);
+      bendFactor = map(pitchBenderValue, 0, 16383, -PITCH_BEND_RANGE, PITCH_BEND_RANGE);
+      trig = true;
     }
 
     // ------------------ Aftertouch 
@@ -313,5 +315,8 @@ void loop() {
   // ****************************************************************
   // *************************** OUTPUT *****************************
   // ****************************************************************
-  
+  if (trig == true) {
+    updateVoices();
+    trig = false;
+  }
 }
