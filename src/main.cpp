@@ -139,8 +139,7 @@ void portaStep() {
       if (portaF != endF) {
         trig = true; 
         if (startF > 0) {
-          float semitone = voices[i].portaFreq * (pow(2, 1 / 12) - 1);
-          float portaStep = semitone / map(portaSpeed, 0, 127, 0, 32);
+          float portaStep = portaF * (pow(2, 1 / 12) - 1) / map(portaSpeed, 0, 127, 0, 32);
           if (startF < endF) {
             portaF += portaStep;
             if (portaF >= endF) {
@@ -306,12 +305,12 @@ void loop() {
     // ------------------ Pitchbend 
     if (MIDI.getType() == midi::PitchBend && MIDI.getChannel() == MIDI_CHANNEL) {
       prevPitchBenderValue = pitchBenderValue;
-      pitchBenderValue = MIDI.getData2() << 7 | MIDI.getData1(); // already 14 bits = Volts out
+      pitchBenderValue = MIDI.getData2() << 7 | MIDI.getData1(); 
       bendFactor = map(pitchBenderValue, 0, 16383, -PITCH_BEND_RANGE, PITCH_BEND_RANGE);
       for (int i = 0; i < POLYPHONY; i++) {
         voices[i].dcoFreq = noteFrequency[voices[i].midiNote] * pow(pow(2, 1 / 12.0), bendFactor);
       }
-      trig = true;
+      trig = true; // Check timing with portaStep routine!!
     }
 
     // ------------------ Aftertouch 
