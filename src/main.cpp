@@ -101,7 +101,7 @@ void debugPrint(int voice) {
   Serial.print(" -> ");
   Serial.print(voices[voice].noteFreq);
   Serial.print("\tOut: ");
-  Serial.print(voices[voice].noteFreq);
+  Serial.print(voices[voice].dcoFreq);
   Serial.print("\tkeyDown: ");
   Serial.print(voices[voice].keyDown);
   Serial.print("\tOn: ");
@@ -127,6 +127,7 @@ void AD9833Reset(int AD_board) {
 
 // ------------------------ Update voice
 void updateVoices() {
+  unsigned long startTimeAD = micros(); // debug timer
   for (int i = 0; i < POLYPHONY; i++) {
     if (voices[i].noteOn == true) {
       long FreqReg0 = (voices[i].dcoFreq * pow(2, 28)) / MCLK;   // Data sheet Freq Calc formula
@@ -146,11 +147,12 @@ void updateVoices() {
       SPI.endTransaction();
     }
   }
+  Serial.println("AD9833s update cycle: " + String(micros() - startTimeAD) + " micros.");
 }
 
 void updateDAC() {
-  for (i = 0; i < POLYPHONY; i++) {
-    writeMCP4728(TCA_CHAN[i], DAC_CHAN[i], (2^12 - 1) * (log2(voices[i].dcoFreq/32.7032) / log2(2093.0045/32.7032)));
+  for (int i = 0; i < POLYPHONY; i++) {
+    writeMCP4728(TCA_CHAN[i], DAC_CHAN[i], (pow(2, 12) - 1) * (log2(voices[i].dcoFreq/32.7032) / log2(2093.0045/32.7032)));
     writeMCP4728(TCA_CHAN[i + 8], DAC_CHAN[i], voices[i].velocity);
     writeMCP4728(TCA_CHAN[i + 16], DAC_CHAN[i], voices[i].noteOn ? 4095 : 0);
   }
@@ -159,46 +161,44 @@ void updateDAC() {
   writeMCP4728(6, 2, pitchBenderVolt);
 }
 
-void setup() {
-  Wire.begin();
-  Wire.setWireTimeout(1000); // Set a timeout for I2C transactions
-  Wire.setClock(400000); // Set the I2C clock frequency to 400 kHz
-  Wire.beginTransmission(TCA_ADDR);
-  Wire.write(0x00); // Turn on internal pullup resistors
-  Wire.endTransmission();
-}
-
 // ------------------------ Calculate portamento steps
 
 void portaStep() {
+  unsigned long startTimeP = micros(); // debug timer
+  
   trig = false;
   if (portaSpeed > 0) {
     for (int i = 0; i < POLYPHONY; i++) {
       float startF = voices[i].prevNoteFreq;
-      float portaF = voices[i].PortaFreq;
+      float portaF = voices[i].portaFreq;
       float endF = voices[i].noteFreq;
-      if (portaF != endF) {
-        trig = true; 
-        if (startF > 0) {
-          float portaStep = portaF * (pow(2, 1 / 12) - 1) / map(portaSpeed, 0, 127, 0, 32);
-          if (startF < endF) {
-            portaF += portaStep;
-            if (portaF >= endF) {
-              portaF = endF;
+      if (portaF != 0) {
+        if (portaF != endF) {
+          trig = true; 
+          if (startF > 0) {
+            float portaStep = portaF * (pow(2, 1 / 12) - 1) / map(portaSpeed, 0, 127, 0, 32);
+            if (startF < endF) {
+              portaF += portaStep;
+              if (portaF >= endF) {
+                portaF = endF;
+              } 
+            }
+            if (startF > endF) {
+              portaF -= portaStep;
+              if (portaF <= endF) {
+                portaF = endF;
+              }
             } 
           }
-          if (startF > endF) {
-            portaF -= portaStep;
-            if (portaF <= endF) {
-              portaF = endF;
-            }
-          } 
-        }
         voices[i].portaFreq = portaF;
+        debugPrint(i);
+        }
       }
       voices[i].dcoFreq = voices[i].portaFreq;
     }
+    Serial.println("Porta update cycle: " + String(micros() - startTimeP) + " micros.");
   }
+  
 }
 
 // ------------------------ Voice buffer routines
@@ -310,7 +310,12 @@ IntervalTimer portaTimer;
 // ************************************************
 
 void setup() {
-  portaTimer.begin(&portaStep, 20000);
+  Wire.begin();
+  Wire.setClock(400000); // Set the I2C clock frequency to 400 kHz
+  Wire.beginTransmission(TCA_ADDR);
+  Wire.write(0x00); // Turn on internal pullup resistors
+  Wire.endTransmission();
+  portaTimer.begin(&portaStep, 2000);
 	Serial.begin(9600);
   MIDI.begin(MIDI_CHANNEL);
   SPI.begin();
