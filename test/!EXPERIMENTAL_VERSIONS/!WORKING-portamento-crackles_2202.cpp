@@ -35,7 +35,7 @@ bool trig = false;
 
 // ----------------------------- DCO vars
 const int FSYNC_PINS[8] = {2, 3, 4, 5, 6, 7, 8, 9};
-#define SPI_CLOCK_SPEED 7500000                     // 7.5 MHz SPI clock - this works ALMOST without clock ticks
+#define SPI_CLOCK_SPEED 25000000                     // 7.5 MHz SPI clock - this works ALMOST without clock ticks
 unsigned long MCLK = 25000000;      
 
 // ----------------------------- DAC vars
@@ -123,6 +123,7 @@ void AD9833Reset(int AD_board) {
   digitalWrite(FSYNC_RESET_PIN, LOW);
   SPI.transfer16(0x2100);
   digitalWrite(FSYNC_RESET_PIN, HIGH);
+  delayMicroseconds(10); // Wait for 10 us after reset
 }
 
 // ------------------------ Update voice
@@ -134,15 +135,19 @@ void updateVoices() {
       int LSB0 = (int)(FreqReg0 & 0x3FFF);
       int FSYNC_SET_PIN = FSYNC_PINS[i];
       SPI.beginTransaction(SPISettings(SPI_CLOCK_SPEED, MSBFIRST, SPI_MODE2));
-      digitalWrite(FSYNC_SET_PIN, LOW);                         // set FSYNC low before writing to AD9833 registers
-      LSB0 |= 0x4000;                                    // DB 15=0, DB14=1
-      MSB0 |= 0x4000;                                    // DB 15=0, DB14=1
-      SPI.transfer16(LSB0);                              // write lower 16 bits to AD9833 registers
-      SPI.transfer16(MSB0);                              // write upper 16 bits to AD9833 registers
-      SPI.transfer16(0xC000);                           // write phase register
-      SPI.transfer16(0x2002);                           // take AD9833 out of reset and output triangle wave (DB8=0)
-      delayMicroseconds(2);                             // Settle time? Doesn't make much difference …
-      digitalWrite(FSYNC_SET_PIN, HIGH);                        // write done, set FSYNC high
+      digitalWrite(FSYNC_SET_PIN, LOW);  // set FSYNC low before writing to AD9833 registers
+      LSB0 |= 0x4000; // DB 15=0, DB14=1
+      MSB0 |= 0x4000; // DB 15=0, DB14=1
+      delayMicroseconds(1); // Wait for 1 us after FSYNC falling edge
+      SPI.transfer16(LSB0); // write lower 16 bits to AD9833 registers
+      delayMicroseconds(50); // Wait for 50 us between writes                             
+      SPI.transfer16(MSB0);  // write upper 16 bits to AD9833 registers
+      delayMicroseconds(50); // Wait for 50 us between writes                            
+      SPI.transfer16(0xC000); // write phase register
+      delayMicroseconds(50); // Wait for 50 us between writes                          
+      SPI.transfer16(0x2002);  // take AD9833 out of reset and output triangle wave (DB8=0)
+      delayMicroseconds(5); // Wait for 50 us between writes         
+      digitalWrite(FSYNC_SET_PIN, HIGH);  // write done, set FSYNC high
       SPI.endTransaction();
     }
   }
@@ -166,16 +171,18 @@ void portaStep() {
   
   trig = false;
   if (portaSpeed > 0) {
+    float speed = map(portaSpeed, 0, 127, 0, 32);
     for (int i = 0; i < POLYPHONY; i++) {
       float startF = voices[i].prevNoteFreq;
       float portaF = voices[i].portaFreq;
       float endF = voices[i].noteFreq;
+      float portaStep = abs(startF - endF) / (portaF * 0.1225) / speed * 20; 
       if (portaF != 0 && voices[i].noteOn == true) {
         if (portaF != endF) {
           trig = true; 
           if (startF > 0) {
-            float semitone = portaF * (pow(2.0, 1.0 / 12.0) - 1.0);
-            float portaStep = semitone / map(portaSpeed, 0, 127, 0, 32);
+            //float semitone = portaF * (pow(2.0, 1.0 / 12.0) - 1.0);
+            //float portaStep = semitone / speed
             if (startF < endF) {
               portaF += portaStep;
               if (portaF >= endF) {
