@@ -171,16 +171,18 @@ void portaStep() {
   
   trig = false;
   if (portaSpeed > 0) {
+    float speed = map(portaSpeed, 0, 127, 0, 32);
     for (int i = 0; i < POLYPHONY; i++) {
       float startF = voices[i].prevNoteFreq;
       float portaF = voices[i].portaFreq;
       float endF = voices[i].noteFreq;
+      float portaStep = abs(startF - endF) / (portaF * 0.1225) / speed * 20; 
       if (portaF != 0 && voices[i].noteOn == true) {
         if (portaF != endF) {
           trig = true; 
           if (startF > 0) {
-            float semitone = portaF * (pow(2.0, 1.0 / 12.0) - 1.0);
-            float portaStep = semitone / map(portaSpeed, 0, 127, 0, 32);
+            //float semitone = portaF * (pow(2.0, 1.0 / 12.0) - 1.0);
+            //float portaStep = semitone / speed
             if (startF < endF) {
               portaF += portaStep;
               if (portaF >= endF) {
