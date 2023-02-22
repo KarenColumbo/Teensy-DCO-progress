@@ -127,7 +127,6 @@ void AD9833Reset(int AD_board) {
 
 // ------------------------ Update voice
 void updateVoices() {
-  unsigned long startTimeAD = micros(); // debug timer
   for (int i = 0; i < POLYPHONY; i++) {
     if (voices[i].noteOn == true) {
       long FreqReg0 = (voices[i].dcoFreq * pow(2, 28)) / MCLK;   // Data sheet Freq Calc formula
@@ -147,7 +146,6 @@ void updateVoices() {
       SPI.endTransaction();
     }
   }
-  Serial.println("AD9833s update cycle: " + String(micros() - startTimeAD) + " micros.");
 }
 
 void updateDAC() {
