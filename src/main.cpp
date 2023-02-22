@@ -176,7 +176,7 @@ void portaStep() {
       float startF = voices[i].prevNoteFreq;
       float portaF = voices[i].portaFreq;
       float endF = voices[i].noteFreq;
-      float portaStep = abs(startF - endF) / (portaF * 0.1225) / speed * 20; 
+      float portaStep = abs(startF - endF) / (portaF * 0.1225) / speed * 10; 
       if (portaF != 0 && voices[i].noteOn == true) {
         if (portaF != endF) {
           trig = true; 
