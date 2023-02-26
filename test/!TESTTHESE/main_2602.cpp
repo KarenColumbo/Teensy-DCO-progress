@@ -44,7 +44,7 @@ double tuningFrequency = 440.0; // A4 = 440 Hz
 
 // ----------------------------- DCO vars
 const int FSYNC_PINS[8] = {2, 3, 4, 5, 6, 7, 8, 9};
-#define SPI_CLOCK_SPEED 25000000                     // 7.5 MHz SPI clock - this works ALMOST without clock ticks
+#define SPI_CLOCK_SPEED 25000000  // 7.5 MHz SPI clock - this works ALMOST without clock ticks
 unsigned long MCLK = 25000000;      
 
 // ----------------------------- DAC vars
