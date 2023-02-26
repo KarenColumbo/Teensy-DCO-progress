@@ -165,8 +165,8 @@ void updateVoices() {
 
 void updateDAC() {
   for (int i = 0; i < POLYPHONY; i++) {
-    writeMCP4728(TCA_CHAN[i], DAC_CHAN[i], (pow(2, 12) - 1) * (log2(voices[i].dcoFreq/32.7032) / log2(2093.0045/32.7032)));
-    writeMCP4728(TCA_CHAN[i + 8], DAC_CHAN[i], voices[i].velocity);
+    writeMCP4728(TCA_CHAN[i], DAC_CHAN[i], noteVolt(voices[i].dcoFreq));
+    writeMCP4728(TCA_CHAN[i + 8], DAC_CHAN[i], map(voices[i].velocity, 0, 127, 0, 4095));
     writeMCP4728(TCA_CHAN[i + 16], DAC_CHAN[i], voices[i].noteOn ? 4095 : 0);
   }
   writeMCP4728(6, 0, aftertouch);
