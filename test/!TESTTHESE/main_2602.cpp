@@ -315,9 +315,6 @@ void loop() {
       pitchBenderValue = MIDI.getData2() << 7 | MIDI.getData1(); 
       pitchBenderVolt = map(pitchBenderValue, 0, 16383, 0, 4095);
       bendFactor = map(pitchBenderValue, 0, 16383, -PITCH_BEND_RANGE, PITCH_BEND_RANGE);
-      for (int i = 0; i < POLYPHONY; i++) {
-        voices[i].dcoFreq = noteFrequency[voices[i].midiNote] * pow(semitone, bendFactor);
-      }
       trig = true; // Check timing with portaStep routine!!
     }
 
@@ -361,7 +358,8 @@ void loop() {
   if (trig == true) {
     for (int i = 0; i < POLYPHONY; i++) {
       if (voices[i].noteOn == true) {
-        long FreqReg0 = (voices[i].dcoFreq * pow(2, 28)) / MCLK;   // Data sheet Freq Calc formula
+        voices[i].dcoFreq = noteFrequency[voices[i].midiNote] * pow(semitone, bendFactor);
+        long FreqReg0 = voices[i].dcoFreq * 268435456 / MCLK;   // Data sheet Freq Calc formula
         int MSB0 = (int)((FreqReg0 & 0xFFFC000) >> 14);     // only lower 14 bits are used for data
         int LSB0 = (int)(FreqReg0 & 0x3FFF);
         int FSYNC_SET_PIN = FSYNC_PINS[i];
