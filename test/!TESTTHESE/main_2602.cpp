@@ -14,6 +14,7 @@
 
 float noteFrequency[96];
 float pitchBenderValue = 8192;
+float pitchBend = 0;
 uint16_t pitchBenderVolt = 0;
 float prevPitchBenderValue = 8192;
 float bendFactor = 0;
@@ -35,8 +36,10 @@ bool trig = false;
 int startNote = 12;
 int endNote = 108;
 double semitone = pow(2, 1 / 12);
-const int adcPin = A0;
-const double lfoFactor = 2.0;
+const int adcPin = A10; // pin 24
+const double lfoFactor = 2.0; // maximum LFO pitch change in semitones
+float lfoBend = 0;
+int adcValue = 0;
 double tuningFrequency = 440.0; // A4 = 440 Hz
 
 // ----------------------------- DCO vars
@@ -315,7 +318,7 @@ void loop() {
       prevPitchBenderValue = pitchBenderValue;
       pitchBenderValue = MIDI.getData2() << 7 | MIDI.getData1(); 
       pitchBenderVolt = map(pitchBenderValue, 0, 16383, 0, 4095);
-      bendFactor = map(pitchBenderValue, 0, 16383, -PITCH_BEND_RANGE, PITCH_BEND_RANGE);
+      pitchBend = pow(semitone, map(pitchBenderValue, 0, 16383, -PITCH_BEND_RANGE, PITCH_BEND_RANGE));
       trig = true; // Check timing with portaStep routine!!
     }
 
@@ -352,8 +355,8 @@ void loop() {
     }
   }
 
-  int adcValue = analogRead(adcPin);
-  float lfoBendFactor = pow(semitone, map(adcValue, 0, 4095, -lfoFactor, lfoFactor));
+  adcValue = analogRead(adcPin);
+  lfoBend = pow(semitone, map(adcValue, 0, 4095, -lfoFactor, lfoFactor));
 
   // ****************************************************************
   // *************************** OUTPUT *****************************
@@ -362,7 +365,7 @@ void loop() {
   if (trig == true) {
     for (int i = 0; i < POLYPHONY; i++) {
       if (voices[i].noteOn == true) {
-        voices[i].dcoFreq = noteFrequency[voices[i].midiNote] * pow(semitone, bendFactor) * lfoBendFactor;
+        voices[i].dcoFreq = noteFrequency[voices[i].midiNote] * pitchBend * lfoBend;
         long FreqReg0 = voices[i].dcoFreq * 268435456 / MCLK;   // Data sheet Freq Calc formula
         int MSB0 = (int)((FreqReg0 & 0xFFFC000) >> 14);     // only lower 14 bits are used for data
         int LSB0 = (int)(FreqReg0 & 0x3FFF);
