@@ -36,6 +36,7 @@ uint8_t portaSpeed = 0;
 bool trig = false;
 int startNote = 12;
 int endNote = 108;
+double semitone = pow(2, 1 / 12);
 
 // Define the tuning frequency
 double tuningFrequency = 440.0; // A4 = 440 Hz
@@ -173,9 +174,7 @@ void updateDAC() {
 
 // ------------------------ Calculate portamento steps
 
-void portaStep() {
-  unsigned long startTimeP = micros(); // debug timer
-  
+void portaStep() {  
   trig = false;
   if (portaSpeed > 0) {
     float speed = map(portaSpeed, 0, 127, 0, 32);
@@ -209,7 +208,6 @@ void portaStep() {
       }
       voices[i].dcoFreq = voices[i].portaFreq;
     }
-    Serial.println("Porta update cycle: " + String(micros() - startTimeP) + " micros.");
   }
   
 }
@@ -372,7 +370,7 @@ void loop() {
       pitchBenderVolt = map(pitchBenderValue, 0, 16383, 0, 4095);
       bendFactor = map(pitchBenderValue, 0, 16383, -PITCH_BEND_RANGE, PITCH_BEND_RANGE);
       for (int i = 0; i < POLYPHONY; i++) {
-        voices[i].dcoFreq = noteFrequency[voices[i].midiNote] * pow(pow(2, 1 / 12.0), bendFactor);
+        voices[i].dcoFreq = noteFrequency[voices[i].midiNote] * pow(semitone, bendFactor);
       }
       trig = true; // Check timing with portaStep routine!!
     }
