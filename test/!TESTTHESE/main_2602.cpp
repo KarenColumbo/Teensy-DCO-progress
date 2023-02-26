@@ -36,13 +36,7 @@ int startNote = 12;
 int endNote = 108;
 double semitone = pow(2, 1 / 12);
 const int adcPin = A0;
-// Define the center value for the ADC reading
-const int adcMidpoint = 2048;
-// Define the maximum voltage for the LFO signal
-const double lfoMaxVoltage = 3.0;
-// Define the pitch bend and LFO factors
 const double lfoFactor = 2.0;
-// Define the tuning frequency
 double tuningFrequency = 440.0; // A4 = 440 Hz
 
 // ----------------------------- DCO vars
@@ -359,9 +353,7 @@ void loop() {
   }
 
   int adcValue = analogRead(adcPin);
-  double lfoVoltage = ((double)adcValue - adcMidpoint) * lfoMaxVoltage / adcMidpoint;
-  double lfoBendFactor = lfoVoltage / lfoMaxVoltage;
-  double lfoPitchFactor = pow(2.0, lfoBendFactor / 12.0) * lfoFactor;
+  float lfoBendFactor = pow(semitone, map(adcValue, 0, 4095, -lfoFactor, lfoFactor));
 
   // ****************************************************************
   // *************************** OUTPUT *****************************
@@ -370,7 +362,7 @@ void loop() {
   if (trig == true) {
     for (int i = 0; i < POLYPHONY; i++) {
       if (voices[i].noteOn == true) {
-        voices[i].dcoFreq = noteFrequency[voices[i].midiNote] * pow(semitone, bendFactor) * lfoPitchFactor;
+        voices[i].dcoFreq = noteFrequency[voices[i].midiNote] * pow(semitone, bendFactor) * lfoBendFactor;
         long FreqReg0 = voices[i].dcoFreq * 268435456 / MCLK;   // Data sheet Freq Calc formula
         int MSB0 = (int)((FreqReg0 & 0xFFFC000) >> 14);     // only lower 14 bits are used for data
         int LSB0 = (int)(FreqReg0 & 0x3FFF);
