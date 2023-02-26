@@ -5,6 +5,7 @@
 #include <SPI.h>
 #include <TCA9548.h>
 #include <IntervalTimer.h>
+#include "notes.h"
 
 #define TUNE 440
 #define POLYPHONY 2
@@ -305,6 +306,7 @@ IntervalTimer portaTimer;
 // ************************************************
 
 void setup() {
+  for (int i = )
   Wire.begin();
   Wire.setClock(400000); // Set the I2C clock frequency to 400 kHz
   Wire.beginTransmission(TCA_ADDR);
