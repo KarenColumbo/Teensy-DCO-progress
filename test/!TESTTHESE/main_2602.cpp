@@ -39,7 +39,8 @@ double semitone = pow(2, 1 / 12);
 const int adcPin = A10; // pin 24
 const double lfoFactor = 2.0; // maximum LFO pitch change in semitones
 float lfoBend = 0;
-int adcValue = 0;
+int adcValue = 2048;
+int lastAdcValue = 2048;
 double tuningFrequency = 440.0; // A4 = 440 Hz
 
 // ----------------------------- DCO vars
@@ -356,7 +357,13 @@ void loop() {
   }
 
   adcValue = analogRead(adcPin);
-  lfoBend = pow(semitone, map(adcValue, 0, 4095, -lfoFactor, lfoFactor));
+  if (adcValue != lastAdcValue) {
+    lfoBend = pow(semitone, map(adcValue, 0, 4095, -lfoFactor, lfoFactor));
+    trig = true;
+    lastAdcValue = adcValue;
+  } else {
+    lfoBend = 1;
+  }
 
   // ****************************************************************
   // *************************** OUTPUT *****************************
