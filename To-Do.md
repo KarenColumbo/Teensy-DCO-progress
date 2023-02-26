@@ -1,1 +1,1 @@
-- velocities -> DACs, CCs -> MCP23017
+- MCP4738 -> TCA9548
