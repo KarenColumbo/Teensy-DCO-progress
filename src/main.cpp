@@ -11,8 +11,6 @@
 #define MIDI_CHANNEL 1
 #define DETUNE 0
 #define PITCH_BEND_RANGE 2
-#define TUNE 440
-//#define LFO_PIN 40
 
 float noteFrequency[96];
 float pitchBenderValue = 8192;
@@ -99,26 +97,6 @@ void writeMCP4728(byte tcaChannel, byte mcpChannel, int data) {
   Wire.endTransmission();
 }
 
-// ------------------------ Debug Print
-void debugPrint(int voice) {
-  Serial.print("Voice #" + String(voice));
-  Serial.print("  Key: ");
-  Serial.print(voices[voice].midiNote);
-  Serial.print("\tFreq: ");
-  Serial.print(noteFrequency[voices[voice].midiNote]);
-  Serial.print(" -> ");
-  Serial.print(voices[voice].noteFreq);
-  Serial.print("\tOut: ");
-  Serial.print(voices[voice].dcoFreq);
-  Serial.print("\tkeyDown: ");
-  Serial.print(voices[voice].keyDown);
-  Serial.print("\tOn: ");
-  Serial.print(voices[voice].noteOn);
-  Serial.print("\t -> Sustained: ");
-  Serial.println(voices[voice].sustained); 
-  //Serial.println(bendFactor);
-}
-
 // ***********************************************************************
 // **************************** DCO routines *****************************
 // ***********************************************************************
@@ -203,7 +181,6 @@ void portaStep() {
             } 
           }
         voices[i].portaFreq = portaF;
-        debugPrint(i);
         }
       }
       voices[i].dcoFreq = voices[i].portaFreq;
