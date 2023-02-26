@@ -4,7 +4,6 @@
 #include <SoftwareSerial.h>
 #include <SPI.h>
 #include <TCA9548.h>
-#include "notes.h"
 #include <IntervalTimer.h>
 
 #define TUNE 440
