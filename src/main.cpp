@@ -301,7 +301,7 @@ void setup() {
   for (int i = startNote; i <= endNote; i++) {
     int noteIndex = i - startNote; // Calculate the index of the note in the array
     noteFrequency[noteIndex] = pow(2.0, (i - 69.0) / 12.0) * tuningFrequency;
-}
+  }
   Wire.begin();
   Wire.setClock(400000); // Set the I2C clock frequency to 400 kHz
   Wire.beginTransmission(TCA_ADDR);
@@ -311,12 +311,12 @@ void setup() {
 	Serial.begin(9600);
   MIDI.begin(MIDI_CHANNEL);
   SPI.begin();
-  for (int i = 0; i < POLYPHONY; i++) {
+  for (int i = 0; i < 8; i++) {
     int FSYNC_PIN_INIT = FSYNC_PINS[i];
     pinMode(FSYNC_PIN_INIT, OUTPUT);                           
     digitalWrite(FSYNC_PIN_INIT, HIGH); 
     AD9833Reset(i);
-    }                     
+  }                     
 }
 
 // ************************************************
