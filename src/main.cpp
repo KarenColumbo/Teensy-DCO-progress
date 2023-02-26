@@ -7,7 +7,8 @@
 #include "notes.h"
 #include <IntervalTimer.h>
 
-#define POLYPHONY 8
+#define TUNE 440
+#define POLYPHONY 2
 #define MIDI_CHANNEL 1
 #define DETUNE 0
 #define PITCH_BEND_RANGE 2
@@ -74,6 +75,16 @@ void initializeVoices() {
     voices[i].portaFreq = 0;
     voices[i].dcoFreq = 0;
   }
+}
+
+float noteFrequency(int Note) {
+  float midiToHz = (pow(2, (Note - 69) / 12)) * TUNE;
+  return midiToHz;
+}
+
+int noteVolt(float Freq) {
+  int Volt = map(Freq, 8.1758, 8372.02, 0, 4095);
+  return Volt;
 }
 
 // ------------------------ TCA/MCP subroutine
