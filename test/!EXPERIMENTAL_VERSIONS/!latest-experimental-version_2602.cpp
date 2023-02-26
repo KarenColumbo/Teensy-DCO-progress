@@ -4,7 +4,6 @@
 #include <SoftwareSerial.h>
 #include <SPI.h>
 #include <TCA9548.h>
-#include "notes.h"
 #include <IntervalTimer.h>
 
 #define TUNE 440
@@ -102,26 +101,6 @@ void writeMCP4728(byte tcaChannel, byte mcpChannel, int data) {
   Wire.endTransmission();
 }
 
-// ------------------------ Debug Print
-void debugPrint(int voice) {
-  Serial.print("Voice #" + String(voice));
-  Serial.print("  Key: ");
-  Serial.print(voices[voice].midiNote);
-  Serial.print("\tFreq: ");
-  Serial.print(noteFrequency[voices[voice].midiNote]);
-  Serial.print(" -> ");
-  Serial.print(voices[voice].noteFreq);
-  Serial.print("\tOut: ");
-  Serial.print(voices[voice].dcoFreq);
-  Serial.print("\tkeyDown: ");
-  Serial.print(voices[voice].keyDown);
-  Serial.print("\tOn: ");
-  Serial.print(voices[voice].noteOn);
-  Serial.print("\t -> Sustained: ");
-  Serial.println(voices[voice].sustained); 
-  //Serial.println(bendFactor);
-}
-
 // ***********************************************************************
 // **************************** DCO routines *****************************
 // ***********************************************************************
@@ -166,8 +145,8 @@ void updateVoices() {
 
 void updateDAC() {
   for (int i = 0; i < POLYPHONY; i++) {
-    writeMCP4728(TCA_CHAN[i], DAC_CHAN[i], (pow(2, 12) - 1) * (log2(voices[i].dcoFreq/32.7032) / log2(2093.0045/32.7032)));
-    writeMCP4728(TCA_CHAN[i + 8], DAC_CHAN[i], voices[i].velocity);
+    writeMCP4728(TCA_CHAN[i], DAC_CHAN[i], noteVolt(voices[i].dcoFreq));
+    writeMCP4728(TCA_CHAN[i + 8], DAC_CHAN[i], map(voices[i].velocity, 0, 127, 0, 4095));
     writeMCP4728(TCA_CHAN[i + 16], DAC_CHAN[i], voices[i].noteOn ? 4095 : 0);
   }
   writeMCP4728(6, 0, aftertouch);
@@ -208,7 +187,6 @@ void portaStep() {
             } 
           }
         voices[i].portaFreq = portaF;
-        debugPrint(i);
         }
       }
       voices[i].dcoFreq = voices[i].portaFreq;
@@ -277,7 +255,7 @@ void noteOn(uint8_t midiNote, uint8_t velocity) {
   voices[voice].noteOn = true;
   voices[voice].keyDown = true;
   voices[voice].velocity = velocity;
-  voices[voice].noteFreq = noteFrequency[voices[voice].midiNote];
+  voices[voice].noteFreq = noteFrequency(voices[voice].midiNote);
   voices[voice].portaFreq = voices[voice].prevNoteFreq;
   voices[voice].dcoFreq = voices[voice].noteFreq;
   trig = true;
@@ -372,7 +350,7 @@ void loop() {
       pitchBenderVolt = map(pitchBenderValue, 0, 16383, 0, 4095);
       bendFactor = map(pitchBenderValue, 0, 16383, -PITCH_BEND_RANGE, PITCH_BEND_RANGE);
       for (int i = 0; i < POLYPHONY; i++) {
-        voices[i].dcoFreq = noteFrequency[voices[i].midiNote] * pow(pow(2, 1 / 12.0), bendFactor);
+        voices[i].dcoFreq = (double)noteFrequency(voices[i].midiNote) * pow(pow(2, 1 / 12.0), bendFactor);
       }
       trig = true; // Check timing with portaStep routine!!
     }
