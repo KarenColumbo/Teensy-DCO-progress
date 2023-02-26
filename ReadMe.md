@@ -17,7 +17,7 @@ I'm calling a voice update subroutine in every cycle of the main loop, portament
 
 There's quite a bit of room for improvement for the time being, but I'll take my sweet time.
 
-To do:
+### To do:
 
 - Couple of MIDI CC knobs and faders written to DACs for analog stuff like VCO/VCF/VCA control
 - Get MIDI note frequencies calculated "on the fly" instead of an array generated at startup - with better coding skills I could get that to work, but I tried, and the pitchbending got sluggish. Gotta seriously rework the voice update interrupt.
