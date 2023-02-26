@@ -1,14 +1,17 @@
-# Teensy-DCO8: 8 voices polyphonic AD9833 triangle wave DCO for Teensy 4.1
+# Teensy-DCO8
+
+## 8 voices polyphonic AD9833 triangle wave DCO for Teensy 4.1
 
 ### Features:
 
 - 8 voices polyphonic note buffer with oldest note stealing
 - Master tune (atm only once in the setup routine), default 440 Hz
-- Fully polyphonic portamento/glide - somewhat chaotic, though
+- Fully polyphonic portamento/glide - somewhat chaotic result, though. Crazy stuff
 - Hold/sustain pedal logic
 - MIDI pitchbend included
 - ADC input with scaling for LFO/FM pitch magic
-- frequency CVs, velocities, gates, pitchbender, aftertouch, modwheel output though a couple of MCP4728 boards via TCA9548
+- CVs for note frequencies, velocities, gates, pitchbender, aftertouch, modwheel output though a couple of MCP4728 boards via TCA9548
+- Streamlined AD9833 addressing via SPI (no library needed)
 
 I'm calling a voice update subroutine in every cycle of the main loop, portamento gets included via timer interrupt. This may not be ideal, and my n00b code reflects it.
 
