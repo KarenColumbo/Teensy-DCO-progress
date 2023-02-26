@@ -3,17 +3,18 @@
 ### Features:
 
 - 8 voices polyphonic note buffer with oldest note stealing
-- Fine tuning (atm only once in the setup routine), default 440 Hz
-- full polyphonic portamento/glide - somewhat chaotic, though
-- hold/sustain pedal logic
-- pitchbend included
-- frequency CVs, velocities, gates, pitchbender output though a couple of MCP4728 via a TCA9548
+- Master tune (atm only once in the setup routine), default 440 Hz
+- Fully polyphonic portamento/glide - somewhat chaotic, though
+- Hold/sustain pedal logic
+- MIDI pitchbend included
+- ADC input with scaling for LFO/FM pitch magic
+- frequency CVs, velocities, gates, pitchbender, aftertouch, modwheel output though a couple of MCP4728 boards via TCA9548
 
 I'm calling a voice update subroutine in every cycle of the main loop, portamento gets included via timer interrupt. This may not be ideal, and my n00b code reflects it.
 
-There's quite an awful lot of room for improvement for the time being, but I'll get better with time.
+There's quite a bit of room for improvement for the time being, but I'll take my sweet time.
 
 To do:
 
-- LFO input OR soft LFO function that additionally gets put out as a CV somewhere.
-- Get MIDI note frequencies calculated "on the fly" instead of an array generated at startup - with better coding skills I could get that to work, but I tried, and the pitchbending got sluggish. Gotta rework the complete voice update interrupt.
+- Couple of MIDI CC knobs and faders written to DACs for analog stuff like VCO/VCF/VCA control
+- Get MIDI note frequencies calculated "on the fly" instead of an array generated at startup - with better coding skills I could get that to work, but I tried, and the pitchbending got sluggish. Gotta seriously rework the voice update interrupt.
