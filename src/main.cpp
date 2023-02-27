@@ -11,6 +11,7 @@
 #define MIDI_CHANNEL 1
 #define DETUNE 0
 #define PITCH_BEND_RANGE 2
+double tuningFrequency = 440.0000 // A4 = 440 Hz
 
 float noteFrequency[96];
 float pitchBenderValue = 8192;
@@ -300,7 +301,7 @@ IntervalTimer portaTimer;
 void setup() {
   for (int i = startNote; i <= endNote; i++) {
     int noteIndex = i - startNote; // Calculate the index of the note in the array
-    noteFrequency[noteIndex] = pow(2.0, (i - 69.0) / 12.0) * tuningFrequency;
+    noteFrequency[noteIndex] = pow(2.0000, (i - 69.0000) / 12.0000) * tuningFrequency;
   }
   Wire.begin();
   Wire.setClock(400000); // Set the I2C clock frequency to 400 kHz
