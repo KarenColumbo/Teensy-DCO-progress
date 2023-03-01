@@ -2,6 +2,10 @@
 
 ## 8 voices polyphonic AD9833 triangle wave DCO for Teensy 4.1
 
+### Progress
+
+- Got a gig in March, so there's no time to get this forward. Will continue in April.
+
 ### Features:
 
 - 8 voices polyphonic note buffer with oldest note stealing
