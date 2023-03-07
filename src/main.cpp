@@ -214,6 +214,29 @@ int findVoice(uint8_t midiNote) {
   return foundVoice;
 }
 
+// --------------------- Sort by pitch!!
+/*
+int findVoice(uint8_t midiNote) {
+  int foundVoice = -1;
+  int minPitch = 128;
+  for (int i = 0; i < POLYPHONY; i++) {
+    if (voices[i].noteOn && voices[i].midiNote == midiNote) {
+      foundVoice = i;
+      break;
+    }
+    else if (!voices[i].noteOn && voices[i].midiNote < minPitch) {
+      minPitch = voices[i].midiNote;
+      foundVoice = i;
+    }
+  }
+  // If the note is not found and all voices are in use, return the oldest voice
+  if (foundVoice == -1) {
+    foundVoice = findOldestVoice();
+  }
+  return foundVoice;
+}
+*/
+
 void noteOn(uint8_t midiNote, uint8_t velocity) {
     
   int voice = findVoice(midiNote);
