@@ -169,3 +169,31 @@ Note that the exact filter requirements may vary depending on the specific analo
 
 */
 
+#include "PDM-Lib.h"
+
+const uint8_t PDM_PINS[POLYPHONY] = {13, 14, 15}; // output pins for PDM signals
+PDM pdmVoices[POLYPHONY];
+
+void outputVoices() {
+  for (int i = 0; i < POLYPHONY; i++) {
+    float voltage = calculateVoltageFromFreq(voices[i].dcoFreq);
+    pdmVoices[i] = PDM(PDM_PINS[i], voltage);
+    pdmVoices[i].enable();
+  }
+}
+
+void stopOutput() {
+  for (int i = 0; i < POLYPHONY; i++) {
+    pdmVoices[i].disable();
+  }
+}
+
+void setup() {
+  // initialize PDM output pins and voices
+  outputVoices();
+}
+
+void loop() {
+  // do something
+}
+
