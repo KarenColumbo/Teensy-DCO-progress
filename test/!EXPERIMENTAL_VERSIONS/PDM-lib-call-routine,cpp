@@ -1,7 +1,26 @@
-#include "PDM-Lib.h"
+#include "PDM-lib.h"
 
-const uint8_t PDM_PINS[POLYPHONY] = {13, 14, 15}; // output pins for PDM signals
+const int POLYPHONY = 4;
+const uint8_t PDM_PINS[POLYPHONY] = {0, 1, 2, 3};
+
+struct Voice {
+  float dcoFreq;
+};
+
+Voice voices[POLYPHONY];
 PDM pdmVoices[POLYPHONY];
+
+void setup() {
+  for (int i = 0; i < POLYPHONY; i++) {
+    voices[i].dcoFreq = 440.0 * (i + 1);
+  }
+
+  outputVoices();
+}
+
+void loop() {
+  // Your main program logic here
+}
 
 void outputVoices() {
   for (int i = 0; i < POLYPHONY; i++) {
@@ -17,12 +36,6 @@ void stopOutput() {
   }
 }
 
-void setup() {
-  // initialize PDM output pins and voices
-  outputVoices();
+float calculateVoltageFromFreq(float freq) {
+  // Your voltage calculation logic here
 }
-
-void loop() {
-  // do something
-}
-
