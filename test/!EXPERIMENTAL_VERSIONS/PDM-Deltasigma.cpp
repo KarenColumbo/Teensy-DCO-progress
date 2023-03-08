@@ -3,33 +3,6 @@ float calculateVoltageFromFreq(uint16_t freq) {
   return voltage;
 }
 
-// --------------PWM
-void outputVoltageAsPWM(uint8_t pin, float voltage) {
-  analogWriteFrequency(pin, 1000000); // set PWM frequency to 1 MHz (adjust as needed)
-  analogWriteResolution(12); // set PWM resolution to 12 bits (adjust as needed)
-  analogWrite(pin, (uint16_t)(voltage / 3.3 * 4095)); // output PWM signal
-}
-
-// --------------Delta/Sigma
-void outputVoltageAsDeltaSigma(uint8_t pin, float voltage) {
-  analogWriteFrequency(pin, 400000); // set PWM frequency to 400 kHz (adjust as needed)
-  analogWriteResolution(8); // set PWM resolution to 8 bits (adjust as needed)
-  uint8_t pwmValue = (uint8_t)(voltage / 3.3 * 255); // convert voltage to PWM duty cycle
-  for (int i = 0; i < 32; i++) { // output 32 Delta-Sigma cycles
-    analogWrite(pin, pwmValue); // output PWM signal
-    delayMicroseconds(25); // delay for 25 us (adjust as needed)
-  }
-}
-
-// -------------- Choose
-void outputVoltage(uint8_t pin, float voltage, bool useDeltaSigma) {
-  if (useDeltaSigma) {
-    outputVoltageAsDeltaSigma(pin, voltage);
-  } else {
-    outputVoltageAsPWM(pin, voltage);
-  }
-}
-
 // --------------- PDM
 void outputVoltageAsPDM(uint8_t pin, float voltage) {
   const uint32_t PDM_FS = 3072000; // PDM sample rate (adjust as needed)
