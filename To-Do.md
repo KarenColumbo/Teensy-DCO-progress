@@ -1,1 +1,2 @@
-- MCP4738 -> TCA9548
+- Function sort notes
+- Function find nearest voice
