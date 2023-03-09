@@ -36,6 +36,16 @@ int startNote = 12;
 int endNote = 108;
 double semitone = pow(2, 1 / 12);
 
+int oldestVoice = 0;
+unsigned long oldestAge = 0xFFFFFFFF;
+uint8_t highestNote = 0;
+uint8_t lowestNote = 127;
+int loudestVoice = -1;
+uint8_t maxVelocity = 0;
+int leastLoudVoice = -1;
+uint8_t minVelocity = 127;
+
+
 // Define the tuning frequency
 double tuningFrequency = 440.0; // A4 = 440 Hz
 
@@ -192,8 +202,6 @@ void portaStep() {
 // ------------------------ Voice buffer routines
 
 int findOldestVoice() {
-  int oldestVoice = 0;
-  unsigned long oldestAge = 0xFFFFFFFF;
   for (int i = 0; i < POLYPHONY; i++) {
     if (!voices[i].noteOn && voices[i].noteAge < oldestAge) {
       oldestVoice = i;
@@ -212,6 +220,76 @@ int findVoice(uint8_t midiNote) {
     }
   }
   return foundVoice;
+}
+
+int findNearestVoice(float freq) {
+  int foundVoice = -1;
+  float minDiff = 999999.0;
+  for (int i = 0; i < POLYPHONY; i++) {
+    if (voices[i].noteOn) {
+      float diff = abs(voices[i].dcoFreq - freq);
+      if (diff < minDiff) {
+        foundVoice = i;
+        minDiff = diff;
+      }
+    }
+  }
+  return foundVoice;
+}
+
+int findFarthestVoice(float freq) {
+  int foundVoice = -1;
+  float maxDiff = 0.0;
+  for (int i = 0; i < POLYPHONY; i++) {
+    if (voices[i].noteOn) {
+      float diff = abs(voices[i].dcoFreq - freq);
+      if (diff > maxDiff) {
+        foundVoice = i;
+        maxDiff = diff;
+      }
+    }
+  }
+  return foundVoice;
+}
+
+uint8_t findHighestNote() {
+  for (int i = 0; i < POLYPHONY; i++) {
+    if (voices[i].noteOn && voices[i].midiNote > highestNote) {
+      highestNote = voices[i].midiNote;
+    }
+  }
+  return highestNote;
+}
+
+uint8_t findLowestNote() {
+  for (int i = 0; i < POLYPHONY; i++) {
+    if (voices[i].noteOn && voices[i].midiNote < lowestNote) {
+      lowestNote = voices[i].midiNote;
+    }
+  }
+  return lowestNote;
+}
+
+int findLoudestVoice() {
+  int loudestVoice = -1;
+  for (int i = 0; i < POLYPHONY; i++) {
+    if (voices[i].noteOn && voices[i].velocity > maxVelocity) {
+      loudestVoice = i;
+      maxVelocity = voices[i].velocity;
+    }
+  }
+  return loudestVoice;
+}
+
+int findLeastLoudVoice() {
+  int leastLoudVoice = -1;
+  for (int i = 0; i < POLYPHONY; i++) {
+    if (voices[i].noteOn && voices[i].velocity < minVelocity) {
+      leastLoudVoice = i;
+      minVelocity = voices[i].velocity;
+    }
+  }
+  return leastLoudVoice;
 }
 
 // --------------------- Sort by pitch!!
