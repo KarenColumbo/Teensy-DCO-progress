@@ -31,6 +31,7 @@ uint8_t knobValue = 0;
 uint8_t knob[17];
 int midiNoteVoltage = 0;
 uint8_t portaSpeed = 0;
+bool glissando = false;
 bool trig = false;
 int startNote = 12;
 int endNote = 108;
@@ -198,6 +199,49 @@ void portaStep() {
   }
   
 }
+
+/*
+// --------------- Glissando Switch
+void portaStep() {  
+  trig = false;
+  if (portaSpeed > 0) {
+    float speed = map(portaSpeed, 0, 127, 0, 32);
+    for (int i = 0; i < POLYPHONY; i++) {
+      float startF = voices[i].prevNoteFreq;
+      float portaF = voices[i].portaFreq;
+      float endF = voices[i].noteFreq;
+      float portaStep = abs(startF - endF) / (portaF * 0.1225) / speed * 20; 
+      if (portaF != 0 && voices[i].noteOn == true) {
+        if (portaF != endF) {
+          trig = true; 
+          if (startF > 0) {
+            if (glissando) {
+              // Calculate portamento step in semitones
+              float semitoneStep = log(endF/startF)/log(pow(2.0, 1.0 / 12.0));
+              portaStep = semitoneStep / speed;
+            }
+            if (startF < endF) {
+              portaF += portaStep;
+              if (portaF >= endF) {
+                portaF = endF;
+              } 
+            }
+            if (startF > endF) {
+              portaF -= portaStep;
+              if (portaF <= endF) {
+                portaF = endF;
+              }
+            } 
+          }
+        voices[i].portaFreq = portaF;
+        }
+      }
+      voices[i].dcoFreq = voices[i].portaFreq;
+    }
+  }
+  
+}
+*/
 
 // ------------------------ Voice buffer routines
 
