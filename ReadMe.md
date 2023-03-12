@@ -23,5 +23,8 @@ There's quite a bit of room for improvement for the time being, but I'll take my
 
 ### To do:
 
+- portamento options: farthest, nearest notes
+- Note stealing options - highest, lowest note, round robin?
+- Glissando
 - Couple of MIDI CC knobs and faders written to DACs for analog stuff like VCO/VCF/VCA control
 - Get MIDI note frequencies calculated "on the fly" instead of an array generated at startup - with better coding skills I could get that to work, but I tried, and the pitchbending got sluggish. Gotta seriously rework the voice update interrupt.
